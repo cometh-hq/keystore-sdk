@@ -1,0 +1,14 @@
+{
+  "name": "crosschain-example",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3006",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@cometh/crosschain": "workspace:*"
+  }
+}
