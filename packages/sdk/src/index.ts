@@ -3,6 +3,8 @@ import {
     formatStorageProof,
     getBlock,
     getSafeOwnerProof,
+    getSafeStorageSlot,
+    getAccountFromProof
 } from "./proofs/storageProof";
 
 export {
@@ -10,4 +12,6 @@ export {
     formatStorageProof,
     getBlock,
     executeTxFromSupraOwner,
+    getSafeStorageSlot,
+    getAccountFromProof
 };

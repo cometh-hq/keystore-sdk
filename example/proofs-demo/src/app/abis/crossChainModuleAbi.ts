@@ -1,45 +1,135 @@
 export const crosschainModuleAbi = [
-    {
-      "type": "constructor",
-      "inputs": [
-        { "name": "param1", "type": "type1" },
-        { "name": "param2", "type": "type2" }
-      ],
-      "stateMutability": "nonpayable"
-    },
-    {
-      "type": "function",
-      "name": "currentSafe",
-      "inputs": [],
-      "outputs": [{ "name": "", "type": "type3" }],
-      "stateMutability": "view"
-    },
-    {
-      "type": "function",
-      "name": "executeTxFromSupraOwner",
-      "inputs": [{ "name": "param", "type": "type4" }],
-      "outputs": [],
-      "stateMutability": "nonpayable"
-    },
-    {
-      "type": "function",
-      "name": "mainSafe",
-      "inputs": [],
-      "outputs": [{ "name": "", "type": "type5" }],
-      "stateMutability": "view"
-    },
-    {
-      "type": "function",
-      "name": "setCurrentSafe",
-      "inputs": [{ "name": "newSafe", "type": "type6" }],
-      "outputs": [],
-      "stateMutability": "nonpayable"
-    },
-    {
-      "type": "function",
-      "name": "verifier",
-      "inputs": [],
-      "outputs": [{ "name": "", "type": "type7" }],
-      "stateMutability": "view"
-    }
-  ]
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_verifier",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_mainSafe",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [],
+    "name": "currentSafe",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "slotValue",
+        "type": "uint256"
+      },
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "accountAddress",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "nonce",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "balance",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "storageRoot",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "codeHash",
+            "type": "bytes32"
+          }
+        ],
+        "internalType": "struct MPT.Account",
+        "name": "account",
+        "type": "tuple"
+      },
+      {
+        "internalType": "bytes[]",
+        "name": "accountProof",
+        "type": "bytes[]"
+      },
+      {
+        "internalType": "bytes[]",
+        "name": "storageProof",
+        "type": "bytes[]"
+      },
+      {
+        "internalType": "bytes",
+        "name": "transactionData",
+        "type": "bytes"
+      }
+    ],
+    "name": "executeTxFromSupraOwner",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "mainSafe",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_currentSafe",
+        "type": "address"
+      }
+    ],
+    "name": "setCurrentSafe",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "verifier",
+    "outputs": [
+      {
+        "internalType": "contract StorageVerifier",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

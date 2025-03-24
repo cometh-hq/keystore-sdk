@@ -34,7 +34,7 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "ethers": "^6.13.5",
-    "rlp": "^3.0.0"
+    "rlp": "^3.0.0",
+    "viem": "^2.23.13"
   }
 }

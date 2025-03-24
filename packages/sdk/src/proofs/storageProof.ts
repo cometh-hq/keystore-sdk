@@ -1,23 +1,36 @@
-//import {ethers, network} from "hardhat"
-import { ethers } from "ethers";
 import rlp from "rlp";
 import { crosschainModuleAbi } from "../abis/crossChainModuleAbi";
+import { privateKeyToAccount } from "viem/accounts";
+
+import { 
+    pad, 
+    toHex,
+    concat,
+    keccak256,
+    type Address, 
+    type WalletClient,
+} from 'viem'
+
+
+export function getSafeStorageSlot(owner: Address) {
+    const paddedAddress = pad(owner, { size: 32 });
+    // https://miro.medium.com/v2/resize:fit:750/format:webp/1*yUeWLrjMp_ADv3oHdNO6iA.png
+    const paddedSlot = toHex(BigInt("0x2"), { size: 32 });
+    const concatenated = concat([paddedAddress, paddedSlot]);
+    return keccak256(concatenated);
+}
 
 export async function getSafeOwnerProof(
-    blockNumber: string,
-    safe: string,
-    owner: string,
-    provider: any
+    blockNumber: `0x${string}`,
+    safeAddress: Address,
+    owner: Address,
+    walletClient: WalletClient
 ): Promise<any> {
-    const paddedAddress = ethers.zeroPadValue(owner, 32);
-    // https://miro.medium.com/v2/resize:fit:750/format:webp/1*yUeWLrjMp_ADv3oHdNO6iA.png
-    const paddedSlot = ethers.toBeHex(BigInt("0x2"), 32);
-    const concatenated = ethers.concat([paddedAddress, paddedSlot]);
-    const hash = ethers.keccak256(concatenated);
+    const slot = getSafeStorageSlot(owner);
 
-    const proof = await provider.request({
+    const proof = await walletClient.transport.request({
         method: "eth_getProof",
-        params: [safe, [hash], blockNumber],
+        params: [safeAddress, [slot], blockNumber],
     });
     return proof;
 }
@@ -25,7 +38,6 @@ export async function getSafeOwnerProof(
 export async function formatStorageProof(proof: any): Promise<any> {
     const rawProofArray = proof.storageProof[0].proof;
 
-    // ✅ Ensure each proof element is converted to `bytes32[]`
     const formattedProofArray = rawProofArray
         .flatMap((p: string) => {
             try {
@@ -35,26 +47,26 @@ export async function formatStorageProof(proof: any): Promise<any> {
                     ? decoded
                           .map((d: any) =>
                               d.length === 32
-                                  ? ethers.hexlify(Uint8Array.from(d))
+                                  ? toHex(Uint8Array.from(d))
                                   : null
                           )
-                          .filter((d) => d !== null) // ✅ Remove invalid elements
+                          .filter((d) => d !== null) 
                     : decoded.length === 32
-                      ? ethers.hexlify(Uint8Array.from(decoded))
+                      ? toHex(Uint8Array.from(decoded))
                       : null;
             } catch (error) {
-                return p.length === 66 ? ethers.hexlify(p) : null; // ✅ Only keep valid `bytes32`
+                return p.length === 66 ? toHex(p) : null; 
             }
         })
-        .filter((p: any) => p !== null); // Remove nulls
+        .filter((p: any) => p !== null); 
     return formattedProofArray;
 }
 
 export async function getBlock(
     blockNumber = "latest",
-    provider: any
+    walletClient: WalletClient
 ): Promise<any> {
-    const block: any = await provider.request({
+    const block: any = await walletClient.transport.request({
         method: "eth_getBlockByNumber",
         params: [blockNumber, false],
     });
@@ -65,33 +77,50 @@ export async function getBlock(
 }
 
 export async function executeTxFromSupraOwner(
-    ownerMainAddress: string,
-    crossChainModuleAddress: string,
-    mainSafeAddress: string,
+    ownerMainAddress: Address,
+    crossChainModuleAddress: Address,
+    mainSafeAddress: Address,
     proof: any,
-    transactionData: any
+    transactionData: any,
+    walletClient: WalletClient
 ): Promise<any> {
-    const crossChainModule: any = new ethers.Contract(
-        crossChainModuleAddress,
-        crosschainModuleAbi
-    );
 
     const storageProof = proof.storageProof[0];
-    const posValue = ethers.toBeHex(storageProof.value, 32);
-    const tx = await crossChainModule.executeTxFromSupraOwner(
-        ownerMainAddress,
-        posValue,
-        {
-            accountAddress: mainSafeAddress,
-            balance: proof.balance,
-            nonce: proof.nonce,
-            storageRoot: proof.storageHash,
-            codeHash: proof.codeHash,
-        },
-        proof.accountProof,
-        storageProof.proof,
-        transactionData
-    );
+    const posValue = toHex(storageProof.value, { size: 32 }); 
+
+    const account = privateKeyToAccount(process.env.NEXT_PUBLIC_PRIVATE_KEY as Address);
+
+    const tx = await walletClient.writeContract({
+        address: crossChainModuleAddress,
+        abi: crosschainModuleAbi,
+        functionName: 'executeTxFromSupraOwner',
+        args: [
+            ownerMainAddress,
+            posValue,
+            {
+                accountAddress: mainSafeAddress,
+                balance: proof.balance,
+                nonce: proof.nonce,
+                storageRoot: proof.storageHash,
+                codeHash: proof.codeHash,
+            },
+            proof.accountProof,
+            storageProof.proof,
+            transactionData,
+        ],
+        chain: walletClient.chain,
+        account,
+    });
 
     return tx;
+}
+
+export async function getAccountFromProof(proof: any, mainSafeAddress: Address): Promise<any> {
+    return {
+        accountAddress: mainSafeAddress,
+        balance: proof.balance,
+        nonce: proof.nonce,
+        storageRoot: proof.storageHash,
+        codeHash: proof.codeHash,
+    }
 }
