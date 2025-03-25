@@ -95,11 +95,12 @@ function createCrossChainUserOpSignature(
 
 async function getSafeOwnerProof(
     client: PublicClient,
+    blockNumber: Hex,
     parentSafeAddress: Address,
     masterOwnerAddress: Address
     // biome-ignore lint/suspicious/noExplicitAny: TODO: remove any
 ): Promise<any> {
-    const blockNumber = toHex(await client.getBlockNumber());
+    //const blockNumber = toHex(await client.getBlockNumber());
     // Use encodeAbiParameters to properly replicate abi.encode
     const encodedData = encodeAbiParameters(
         [
@@ -167,7 +168,7 @@ async function prepareCrossChainUserOperation({
             `Crosschain validator is not installed for child safe account ${safeChildClient.account.address}`
         );
     }
-    const parentSafeAddress = accountData.parentAddress;
+    const parentSafeAddress = accountData[1];
     const blockNumber = toHex(await publicClient.getBlockNumber());
     const blockState = await publicClient.getBlock({
         blockNumber: BigInt(blockNumber),
@@ -191,6 +192,7 @@ async function prepareCrossChainUserOperation({
 
     const proof = await getSafeOwnerProof(
         publicClient as PublicClient,
+        blockNumber,
         parentSafeAddress,
         masterOwner.address
     );

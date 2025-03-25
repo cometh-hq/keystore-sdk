@@ -2,72 +2,130 @@
 
 import { PlusIcon } from "@radix-ui/react-icons";
 import { useEffect, useState } from "react";
-import { ethers } from "ethers";
-import { getEnv } from "../utils/env";
-import { getSafeOwnerProof, getBlock, executeTxFromSupraOwner } from "@cometh/crosschain";
-import { counterAbi } from "../abis/counterAbi";
+import { http, createPublicClient, encodeFunctionData } from "viem";
+
+import { baseSepolia } from "viem/chains";
 import { Icons } from "../lib/ui/components";
 import Alert from "../lib/ui/components/Alert";
 
-const savedBlockNumber = "0x15e786e";
+import counterContractAbi from "../abis/counterABI.json";
+
+import {
+    getCrosschainValidator,
+    sendCrossChainUserOperation,
+} from "@cometh/crosschain";
+
+
+const COUNTER_ADDRESS = "0x4FbF9EE4B2AF774D4617eAb027ac2901a41a7b5F";
+const rpc = process.env.NEXT_PUBLIC_RPC_URL;
 
 interface TransactionProps {
     transactionSuccess: boolean;
     setTransactionSuccess: React.Dispatch<React.SetStateAction<boolean>>;
+    safeChildClient: any;
+    parentAccountClient: any;
+    masterOwner: any;
+    pimlicoClient: any;
 }
 
-function Transaction({ transactionSuccess, setTransactionSuccess }: TransactionProps) {
+function Transaction({
+    transactionSuccess,
+    setTransactionSuccess,
+    safeChildClient,
+    parentAccountClient,
+    masterOwner,
+    pimlicoClient,
+}: TransactionProps) {
     const [isTransactionLoading, setIsTransactionLoading] = useState(false);
-    const [transactionSended, setTransactionSended] = useState<string | null>(null);
+    const [transactionSended, setTransactionSended] = useState<string | null>(
+        null
+    );
     const [transactionFailure, setTransactionFailure] = useState(false);
     const [nftBalance, setNftBalance] = useState<number>(0);
+    const [parentSafeAddress, setParentSafeAddress] = useState<string | null>(
+        null
+    );
+    const [childSafeAddress, setChildSafeAddress] = useState<string | null>(
+        null
+    );
+    const [masterOwnerAddress, setMasterOwnerAddress] = useState<string | null>(
+        null
+    );
 
-    const prepareTransaction = async (counter: ethers.Contract) => {
-        const msgTo = await counter.getAddress();
-        const msgValue = 0;
-        const msgData = counter.interface.encodeFunctionData("increment", []);
-        const msgOperation = 0;
-
-        return ethers.AbiCoder.defaultAbiCoder().encode(
-            ["address", "uint256", "bytes", "uint8"],
-            [msgTo, msgValue, msgData, msgOperation]
-        );
-    };
-
-    const sendTestTransaction = async () => {
+    const sendTestTransaction = async (
+        masterOwner: any,
+        safeChildClient: any,
+        parentAccountClient: any,
+        pimlicoClient: any
+    ) => {
         setTransactionSended(null);
         setTransactionFailure(false);
         setTransactionSuccess(false);
         setIsTransactionLoading(true);
 
         try {
-            const privateKey = getEnv("NEXT_PUBLIC_PRIVATE_KEY");
-            const providerUrl = `https://mainnet.infura.io/v3/${getEnv("NEXT_PUBLIC_INFURA_PROJECT_ID")}`;
-            const provider = new ethers.JsonRpcProvider(providerUrl);
-            const counterAddress = getEnv("NEXT_PUBLIC_CONTRACT_COUNTER");
-            const crossChainModuleAddress = getEnv("NEXT_PUBLIC_SECONDARY_CROSS_CHAIN_MODULE");
-            const ownerMain = new ethers.Wallet(privateKey, provider);
-            const ownerMainAddress = await ownerMain.getAddress();
-            const mainSafeAddress = getEnv("NEXT_PUBLIC_MAIN_SAFE_ADDRESS");
+            setMasterOwnerAddress(masterOwner.address);
+            setChildSafeAddress(safeChildClient.account?.address);
+            setParentSafeAddress(parentAccountClient.account?.address);
 
-            const counter = new ethers.Contract(counterAddress, counterAbi, ownerMain);
-            const block = await getBlock(savedBlockNumber, provider);
-            const transactionData = await prepareTransaction(counter);
-            const proof = await getSafeOwnerProof(savedBlockNumber, mainSafeAddress, ownerMainAddress, provider);
+            const publicClient = createPublicClient({
+                transport: http(rpc),
+                chain: baseSepolia,
+            });
 
-            const tx = await executeTxFromSupraOwner(
-                ownerMainAddress,
-                crossChainModuleAddress,
-                mainSafeAddress,
-                proof,
-                transactionData
+            const counterData = encodeFunctionData({
+                abi: counterContractAbi,
+                functionName: "count",
+                args: [],
+            });
+
+            console.log(
+                "Smart Account Address: ",
+                safeChildClient.account?.address
             );
 
-            console.log(`- Executed. (tx: ${tx.hash})`);
-            setTransactionSended(tx.hash);
-            setTransactionSuccess(true);
+            const crossChainValidator = getCrosschainValidator(
+                parentAccountClient.account.address
+            );
+            console.log({ crossChainValidator });
+            const isValidatorInstalled =
+                await safeChildClient.isModuleInstalled(crossChainValidator);
 
-            const count = await counter.count();
+            console.log({ isValidatorInstalled });
+
+            if (!isValidatorInstalled) {
+                const opHash2 =
+                    await safeChildClient.installModule(crossChainValidator);
+
+                await pimlicoClient.waitForUserOperationReceipt({
+                    hash: opHash2,
+                });
+
+                console.log("Validator installation completed");
+            }
+
+            const userOpHash = await sendCrossChainUserOperation({
+                safeChildClient,
+                masterOwner,
+                contractAddress: COUNTER_ADDRESS,
+                callData: counterData,
+            });
+
+            const receipt2 = await pimlicoClient.waitForUserOperationReceipt({
+                hash: userOpHash,
+            });
+
+            console.log("receipt2", receipt2);
+
+            const count = await publicClient.readContract({
+                address: COUNTER_ADDRESS,
+                abi: counterContractAbi,
+                functionName: "counters",
+                args: [safeChildClient.account.address],
+            });
+
+            console.log("Count: ", count);
+
             setNftBalance(Number(count));
         } catch (e) {
             console.error("Error:", e);
@@ -83,16 +141,33 @@ function Transaction({ transactionSuccess, setTransactionSuccess }: TransactionP
                 <div className="relative flex flex-col items-center gap-y-6 rounded-lg p-4">
                     <button
                         className="mt-1 flex h-11 py-2 px-4 gap-2 flex-none items-center justify-center rounded-lg bg-gray-100 hover:bg-gray-200"
-                        onClick={sendTestTransaction}
+                        onClick={() =>
+                            sendTestTransaction(
+                                masterOwner,
+                                safeChildClient,
+                                parentAccountClient,
+                                pimlicoClient
+                            )
+                        }
                     >
                         {isTransactionLoading ? (
                             <Icons.spinner className="h-4 w-4 animate-spin" />
                         ) : (
                             <PlusIcon width={16} height={16} />
-                        )} Send tx
+                        )}{" "}
+                        Send tx
                     </button>
 
                     <p className="text-gray-600">{nftBalance}</p>
+                    {parentSafeAddress && (
+                        <p>Parent Safe Account Address: {parentSafeAddress}</p>
+                    )}
+                    {childSafeAddress && (
+                        <p>Child Safe Account Address: {childSafeAddress}</p>
+                    )}
+                    {masterOwnerAddress && (
+                        <p>Master Owner Address: {masterOwnerAddress}</p>
+                    )}
                 </div>
             </div>
 
@@ -106,7 +181,9 @@ function Transaction({ transactionSuccess, setTransactionSuccess }: TransactionP
                     }}
                 />
             )}
-            {transactionFailure && <Alert state="error" content="Transaction Failed !" />}
+            {transactionFailure && (
+                <Alert state="error" content="Transaction Failed !" />
+            )}
         </main>
     );
 }
