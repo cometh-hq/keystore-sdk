@@ -42,7 +42,7 @@ export default function App() {
 
         try {
             const bundlerUrl = process.env.NEXT_PUBLIC_4337_BUNDLER_URL!;
-            const paymasterUrl = process.env.NEXT_PUBLIC_4337_BUNDLER_URL!;
+            const paymasterUrl = process.env.NEXT_PUBLIC_4337_PAYMASTER_URL!;
             const ownerPK = process.env.NEXT_PUBLIC_PRIVATE_KEY!;
             const rpc = process.env.NEXT_PUBLIC_RPC_URL!;
 
