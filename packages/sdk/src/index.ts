@@ -1,17 +1,13 @@
 import {
-    executeTxFromSupraOwner,
-    formatStorageProof,
-    getBlock,
+    getCrosschainValidator,
     getSafeOwnerProof,
-    getSafeStorageSlot,
-    getAccountFromProof
-} from "./proofs/storageProof";
+    prepareCrossChainUserOperation,
+    sendCrossChainUserOperation,
+} from "./crosschainActions/crosschainActions";
 
 export {
     getSafeOwnerProof,
-    formatStorageProof,
-    getBlock,
-    executeTxFromSupraOwner,
-    getSafeStorageSlot,
-    getAccountFromProof
+    getCrosschainValidator,
+    prepareCrossChainUserOperation,
+    sendCrossChainUserOperation,
 };

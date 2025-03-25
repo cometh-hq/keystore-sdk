@@ -34,6 +34,8 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@rhinestone/module-sdk": "^0.2.7",
+    "permissionless": "^0.2.38",
     "rlp": "^3.0.0",
     "viem": "^2.23.13"
   }
