@@ -153,21 +153,27 @@ async function prepareCrossChainUserOperation({
 }): Promise<Hex> {
     const publicClient = safeChildClient.account.client;
     const chain = safeChildClient.chain as Chain;
-    // biome-ignore lint/suspicious/noExplicitAny: TODO: remove any
-    let accountData: any;
 
-    try {
-        accountData = await publicClient.readContract({
-            address: CROSS_CHAIN_VALIDATOR_ADDRESS,
-            abi: crossChainValidatorAbi,
-            functionName: "accountData",
-            args: [safeChildClient.account.address],
-        });
-    } catch (_err) {
+    const isInitialized = await publicClient.readContract({
+        address: CROSS_CHAIN_VALIDATOR_ADDRESS,
+        abi: crossChainValidatorAbi,
+        functionName: "isInitialized",
+        args: [safeChildClient.account.address],
+    });
+
+    if (!isInitialized) {
         throw new Error(
-            `Crosschain validator is not installed for child safe account ${safeChildClient.account.address}`
+            `Crosschain validator is not initialized for child safe account ${safeChildClient.account.address}`
         );
     }
+
+    const accountData = await publicClient.readContract({
+        address: CROSS_CHAIN_VALIDATOR_ADDRESS,
+        abi: crossChainValidatorAbi,
+        functionName: "accountData",
+        args: [safeChildClient.account.address],
+    });
+
     const parentSafeAddress = accountData[1];
     const blockNumber = toHex(await publicClient.getBlockNumber());
     const blockState = await publicClient.getBlock({
