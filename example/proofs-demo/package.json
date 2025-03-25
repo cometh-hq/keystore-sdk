@@ -6,8 +6,7 @@
     "dev": "next dev --port 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "exec": "bun scripts/exec.ts"
+    "lint": "next lint"
   },
   "dependencies": {
     "@cometh/crosschain": "workspace:*",
