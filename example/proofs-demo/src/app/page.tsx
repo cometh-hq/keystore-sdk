@@ -103,7 +103,7 @@ export default function App() {
                     value: 0n,
                 });
 
-                await pimlicoClient.waitForUserOperationReceipt({ hash });
+                //await pimlicoClient.waitForUserOperationReceipt({ hash });
             }
 
             setIsConnected(true);

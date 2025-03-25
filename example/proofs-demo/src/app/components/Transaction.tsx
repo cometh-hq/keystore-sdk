@@ -52,6 +52,18 @@ function Transaction({
         null
     );
 
+    useEffect(() => {
+        if (parentAccountClient) {
+            setParentSafeAddress(parentAccountClient.account.address);
+        }
+        if (safeChildClient) {
+            setChildSafeAddress(safeChildClient.account.address);
+        }
+        if (masterOwner) {
+            setMasterOwnerAddress(masterOwner.address);
+        }
+    }, [parentAccountClient, safeChildClient, masterOwner]);
+
     const sendTestTransaction = async (
         masterOwner: any,
         safeChildClient: any,
@@ -64,10 +76,6 @@ function Transaction({
         setIsTransactionLoading(true);
 
         try {
-            setMasterOwnerAddress(masterOwner.address);
-            setChildSafeAddress(safeChildClient.account?.address);
-            setParentSafeAddress(parentAccountClient.account?.address);
-
             const publicClient = createPublicClient({
                 transport: http(rpc),
                 chain: baseSepolia,
@@ -88,8 +96,12 @@ function Transaction({
                 parentAccountClient.account.address
             );
             console.log({ crossChainValidator });
-            const isValidatorInstalled =
-                await safeChildClient.isModuleInstalled(crossChainValidator);
+            let isValidatorInstalled = false;
+            try {
+                isValidatorInstalled = await safeChildClient.isModuleInstalled(crossChainValidator);
+            } catch (error) {
+                console.warn("Error checking if module is installed: crossChainValidator may not be installed");
+            }
 
             console.log({ isValidatorInstalled });
 
