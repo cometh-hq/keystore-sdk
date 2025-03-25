@@ -1,17 +1,10 @@
-import {
-    MOCK_ATTESTER_ADDRESS,
-} from "@rhinestone/module-sdk";
+import { MOCK_ATTESTER_ADDRESS } from "@rhinestone/module-sdk";
 import dotenv from "dotenv";
 import { createSmartAccountClient } from "permissionless";
 import { toSafeSmartAccount } from "permissionless/accounts";
 import { erc7579Actions } from "permissionless/actions/erc7579";
 import { createPimlicoClient } from "permissionless/clients/pimlico";
-import {
-    http,
-    type Hex,
-    createPublicClient,
-    encodeFunctionData,
-} from "viem";
+import { http, type Hex, createPublicClient, encodeFunctionData } from "viem";
 import {
     createPaymasterClient,
     entryPoint07Address,
@@ -20,14 +13,16 @@ import { privateKeyToAccount } from "viem/accounts";
 import { baseSepolia } from "viem/chains";
 import counterContractAbi from "../src/app/abis/counterABI.json";
 
-import { getCrosschainValidator, sendCrossChainUserOperation } from "@cometh/crosschain";
+import {
+    getCrosschainValidator,
+    sendCrossChainUserOperation,
+} from "@cometh/crosschain";
 dotenv.config();
 
 const chain = baseSepolia;
 
 const COUNTER_ADDRESS = "0x4FbF9EE4B2AF774D4617eAb027ac2901a41a7b5F";
-const rpc =
-    "https://base-sepolia.g.alchemy.com/v2/tCFPishTUTOa-7bz8oPU735Q1TFGIntR"
+const rpc = process.env.NEXT_PUBLIC_RPC_URL;
 
 async function getSafeParentAccount({
     publicClient,
@@ -88,7 +83,7 @@ async function getSafeChildAccount({
     publicClient: any;
     paymasterClient: any;
 }) {
-    const owner = privateKeyToAccount(process.env.CHILD_OWNER_PK as Hex);
+    const owner = privateKeyToAccount(process.env.NEXT_PUBLIC_CHILD_OWNER_PK as Hex);
 
     const safeAccount = await toSafeSmartAccount({
         client: publicClient,
@@ -121,12 +116,10 @@ async function getSafeChildAccount({
     return smartAccountClient;
 }
 
-
-
 export default async function main() {
     const bundlerUrl = process.env.NEXT_PUBLIC_4337_BUNDLER_URL!;
     const paymasterUrl = process.env.NEXT_PUBLIC_4337_BUNDLER_URL!;
-    const ownerPK = process.env.PRIVATE_KEY!;
+    const ownerPK = process.env.NEXT_PUBLIC_PRIVATE_KEY!;
 
     const masterOwner = privateKeyToAccount(ownerPK as Hex);
 
@@ -155,7 +148,6 @@ export default async function main() {
         pimlicoClient,
         publicClient,
     });
- 
 
     const parentAccountClient = await getSafeParentAccount({
         bundlerUrl,
@@ -177,11 +169,13 @@ export default async function main() {
     //     value: 0n
     // })
 
-    // await pimlicoClient.waitForUserOperationReceipt({hash}) 
+    // await pimlicoClient.waitForUserOperationReceipt({hash})
 
     console.log("Smart Account Address: ", safeChildClient.account?.address);
 
-    const crossChainValidator = getCrosschainValidator(parentAccountClient.account.address);
+    const crossChainValidator = getCrosschainValidator(
+        parentAccountClient.account.address
+    );
     console.log({ crossChainValidator });
     const isValidatorInstalled =
         await safeChildClient.isModuleInstalled(crossChainValidator);
@@ -199,16 +193,12 @@ export default async function main() {
         console.log("Validator installation completed");
     }
 
-
-
-
-
     const userOpHash = await sendCrossChainUserOperation({
         safeChildClient,
         masterOwner,
         contractAddress: COUNTER_ADDRESS,
         callData: counterData,
-    })
+    });
 
     const receipt2 = await pimlicoClient.waitForUserOperationReceipt({
         hash: userOpHash,
@@ -231,12 +221,3 @@ main().catch((error) => {
     console.error(error);
     process.exit(1);
 });
-
-
-
-
-
-
-
-
-
