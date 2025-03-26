@@ -36,6 +36,7 @@
 
     // Language and environment
     "moduleResolution": "node",
+    "resolveJsonModule": true,
     "module": "esnext",
     "target": "ES2021", // Setting this to `ES2021` enables native support for `Node v16+`: https://github.com/microsoft/TypeScript/wiki/Node-Target-Mapping.
     "lib": [
@@ -61,5 +62,5 @@
   "tsc-alias": {
     "resolveFullPaths": true,
     "verbose": false
-  }
+  },
 }

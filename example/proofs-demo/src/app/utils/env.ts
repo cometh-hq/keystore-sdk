@@ -1,11 +1,11 @@
 export const getEnv = (key: string): string => {
-    const value = process.env[key]
+    const value = process.env[key];
     if (!value) {
-        throw new Error(`Missing env.${key}`)
+        throw new Error(`Missing env.${key}`);
     }
-    return value
-}
+    return value;
+};
 
 export const findEnv = (key: string): string | undefined => {
-    return process.env[key]
-}
+    return process.env[key];
+};

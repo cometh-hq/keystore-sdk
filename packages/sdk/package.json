@@ -34,7 +34,10 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "ethers": "^6.13.5",
-    "rlp": "^3.0.0"
+    "@rhinestone/module-sdk": "^0.2.7",
+    "permissionless": "^0.2.38",
+    "rlp": "^3.0.0",
+    "tsc-alias": "^1.8.11",
+    "viem": "^2.23.13"
   }
 }
