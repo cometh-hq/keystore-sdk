@@ -20,12 +20,16 @@ import {
     toHex,
 } from "viem";
 import {
+    type UserOperation,
     entryPoint07Address,
     getUserOperationHash,
 } from "viem/account-abstraction";
 
+import { OWNERS_SLOT, SIGNATURE_DATA_ABI } from "@/constants";
+import type { SmartAccountClient } from "permissionless";
 import { getAccountNonce } from "permissionless/actions";
 import crossChainValidatorAbi from "../abis/crosschainValidator.json";
+import type { AccountData, CrosschainValidator, Proof } from "./types";
 
 const CROSS_CHAIN_VALIDATOR_ADDRESS =
     "0x92d370ab0c66f0183698e03c0c2fba7034eeaa32" as Address;
@@ -33,8 +37,7 @@ const CROSS_CHAIN_VALIDATOR_ADDRESS =
 function createCrossChainUserOpSignature(
     parentSafeAddress: Address,
     masterOwnerAddress: Address,
-    // biome-ignore lint/suspicious/noExplicitAny: TODO: remove any
-    proof: any,
+    proof: Proof,
     masterOwnerSignature: Hex,
     chain: Chain
 ): Hex {
@@ -45,50 +48,23 @@ function createCrossChainUserOpSignature(
     const posValue = `0x${valueStr.padStart(64, "0")}`;
 
     // Structure the signature data according to the SignatureData struct in the CrossChainValidator
-    const signature = encodeAbiParameters(
-        [
-            {
-                type: "tuple",
-                name: "storageProofData",
-                components: [
-                    { type: "uint256", name: "chainId" },
-                    { type: "address", name: "owner" },
-                    { type: "uint256", name: "slotValue" },
-                    {
-                        type: "tuple",
-                        name: "account",
-                        components: [
-                            { type: "address", name: "accountAddress" },
-                            { type: "uint256", name: "nonce" },
-                            { type: "uint256", name: "balance" },
-                            { type: "bytes32", name: "storageRoot" },
-                            { type: "bytes32", name: "codeHash" },
-                        ],
-                    },
-                    { type: "bytes[]", name: "accountProof" },
-                    { type: "bytes[]", name: "storageProof" },
-                ],
+    const signature = encodeAbiParameters(SIGNATURE_DATA_ABI, [
+        {
+            chainId: BigInt(chain.id),
+            owner: masterOwnerAddress,
+            slotValue: BigInt(posValue),
+            account: {
+                accountAddress: parentSafeAddress,
+                nonce: BigInt(proof.nonce),
+                balance: BigInt(proof.balance),
+                storageRoot: proof.storageHash,
+                codeHash: proof.codeHash,
             },
-            { type: "bytes", name: "signature" },
-        ],
-        [
-            {
-                chainId: BigInt(chain.id),
-                owner: masterOwnerAddress,
-                slotValue: BigInt(posValue),
-                account: {
-                    accountAddress: parentSafeAddress,
-                    nonce: BigInt(proof.nonce),
-                    balance: BigInt(proof.balance),
-                    storageRoot: proof.storageHash,
-                    codeHash: proof.codeHash,
-                },
-                accountProof: proof.accountProof,
-                storageProof: storageProof.proof,
-            },
-            masterOwnerSignature,
-        ]
-    );
+            accountProof: proof.accountProof,
+            storageProof: storageProof.proof,
+        },
+        masterOwnerSignature,
+    ]);
 
     return signature;
 }
@@ -98,16 +74,14 @@ async function getSafeOwnerProof(
     blockNumber: Hex,
     parentSafeAddress: Address,
     masterOwnerAddress: Address
-    // biome-ignore lint/suspicious/noExplicitAny: TODO: remove any
-): Promise<any> {
-    //const blockNumber = toHex(await client.getBlockNumber());
+): Promise<Proof> {
     // Use encodeAbiParameters to properly replicate abi.encode
     const encodedData = encodeAbiParameters(
         [
             { name: "owner", type: "address" },
             { name: "slot", type: "uint256" },
         ],
-        [masterOwnerAddress, 2n]
+        [masterOwnerAddress, OWNERS_SLOT]
     );
 
     // Calculate the storage slot hash using keccak256
@@ -121,8 +95,10 @@ async function getSafeOwnerProof(
 
     return proof;
 }
-// biome-ignore lint/suspicious/noExplicitAny: TODO: remove any
-function getCrosschainValidator(parentSafeAddress: Address): any {
+
+function getCrosschainValidator(
+    parentSafeAddress: Address
+): CrosschainValidator {
     return {
         address: CROSS_CHAIN_VALIDATOR_ADDRESS,
         module: CROSS_CHAIN_VALIDATOR_ADDRESS,
@@ -131,7 +107,7 @@ function getCrosschainValidator(parentSafeAddress: Address): any {
                 { name: "ownerSlotNumber", type: "uint256" },
                 { name: "parentAddress", type: "address" },
             ],
-            [2n, parentSafeAddress]
+            [OWNERS_SLOT, parentSafeAddress]
         ) as Hex,
         deInitData: "0x" as Hex,
         additionalContext: "0x" as Hex,
@@ -145,13 +121,15 @@ async function prepareCrossChainUserOperation({
     contractAddress,
     callData,
 }: {
-    // biome-ignore lint/suspicious/noExplicitAny: TODO: remove any
-    safeChildClient: any;
+    safeChildClient: SmartAccountClient;
     masterOwner: PrivateKeyAccount;
     contractAddress: Address;
     callData: EncodeFunctionDataReturnType;
-}): Promise<Hex> {
-    const publicClient = safeChildClient.account.client;
+}): Promise<UserOperation> {
+    if (!safeChildClient.account) {
+        throw new Error("Safe Child Client account is undefined");
+    }
+    const publicClient = safeChildClient.account.client as PublicClient;
     const chain = safeChildClient.chain as Chain;
 
     const isInitialized = await publicClient.readContract({
@@ -167,12 +145,12 @@ async function prepareCrossChainUserOperation({
         );
     }
 
-    const accountData = await publicClient.readContract({
+    const accountData = (await publicClient.readContract({
         address: CROSS_CHAIN_VALIDATOR_ADDRESS,
         abi: crossChainValidatorAbi,
         functionName: "accountData",
         args: [safeChildClient.account.address],
-    });
+    })) as AccountData;
 
     const parentSafeAddress = accountData[1];
     const blockNumber = toHex(await publicClient.getBlockNumber());
@@ -229,6 +207,7 @@ async function prepareCrossChainUserOperation({
 
     // Prepare user operation
     const userOperation = await safeChildClient.prepareUserOperation({
+        account: safeChildClient.account,
         calls: [
             {
                 to: contractAddress,
@@ -265,7 +244,7 @@ async function prepareCrossChainUserOperation({
         chain
     );
 
-    return userOperation;
+    return userOperation as UserOperation;
 }
 
 async function sendCrossChainUserOperation({
@@ -274,8 +253,7 @@ async function sendCrossChainUserOperation({
     contractAddress,
     callData,
 }: {
-    // biome-ignore lint/suspicious/noExplicitAny: TODO: remove any
-    safeChildClient: any;
+    safeChildClient: SmartAccountClient;
     masterOwner: PrivateKeyAccount;
     contractAddress: Address;
     callData: EncodeFunctionDataReturnType;
@@ -288,10 +266,6 @@ async function sendCrossChainUserOperation({
     });
 
     const userOpHash = await safeChildClient.sendUserOperation(userOperation);
-
-    // const receipt2 = await pimlicoClient.waitForUserOperationReceipt({
-    //     hash: userOpHash,
-    // });
 
     return userOpHash;
 }
