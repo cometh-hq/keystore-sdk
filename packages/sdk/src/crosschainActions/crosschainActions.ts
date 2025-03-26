@@ -1,4 +1,5 @@
 import {
+    type Module,
     type ModuleType,
     encodeValidatorNonce,
     getAccount,
@@ -30,7 +31,7 @@ import crossChainValidatorAbi from "@/abis/crosschainValidator.json";
 import { OWNERS_SLOT, SIGNATURE_DATA_ABI } from "@/constants";
 import type { SmartAccountClient } from "permissionless";
 import { getAccountNonce } from "permissionless/actions";
-import type { AccountData, CrosschainValidator, Proof } from "./types";
+import type { AccountData, Proof } from "./types";
 
 const CROSS_CHAIN_VALIDATOR_ADDRESS =
     "0x92d370ab0c66f0183698e03c0c2fba7034eeaa32" as Address;
@@ -97,9 +98,7 @@ async function getSafeOwnerProof(
     return proof;
 }
 
-function getCrosschainValidator(
-    parentSafeAddress: Address
-): CrosschainValidator {
+function getCrosschainValidator(parentSafeAddress: Address): Module {
     return {
         address: CROSS_CHAIN_VALIDATOR_ADDRESS,
         module: CROSS_CHAIN_VALIDATOR_ADDRESS,

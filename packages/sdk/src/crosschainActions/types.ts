@@ -1,7 +1,5 @@
-import type { Address, Hex } from "viem";
-
-import type { ModuleType } from "@rhinestone/module-sdk";
 import type { SmartAccountClientConfig } from "permissionless";
+import type { Address, Hex } from "viem";
 
 export type StorageProof = {
     key: Hex;
@@ -17,15 +15,6 @@ export type Proof = {
     nonce: Hex;
     storageHash: Hex;
     storageProof: StorageProof[];
-};
-
-export type CrosschainValidator = {
-    address: Address;
-    module: Address;
-    initData: Hex;
-    deInitData: Hex;
-    additionalContext: Hex;
-    type: ModuleType;
 };
 
 export type AccountData = [bigint, Address];
