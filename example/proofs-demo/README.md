@@ -1,15 +1,13 @@
-# example
+# Cometh getting started example
 
-To install dependencies:
+Discover all the cometh tools here: [our documentation](https://docs.cometh.io/).
 
-```bash
-bun install
-```
+## Installation
 
-To run:
+Clone the repo and run `bun install`
 
-```bash
-bun run index.ts
-```
+Setup your .env file from the .env.example file.
 
-This project was created using `bun init` in bun v1.2.2. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+
+
+After the successfull installation of the packages: `bun dev`
