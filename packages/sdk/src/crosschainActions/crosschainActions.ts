@@ -7,6 +7,7 @@ import {
 import {
     http,
     type Address,
+    type Call,
     type Chain,
     type EncodeFunctionDataReturnType,
     type Hex,
@@ -25,10 +26,10 @@ import {
     getUserOperationHash,
 } from "viem/account-abstraction";
 
+import crossChainValidatorAbi from "@/abis/crosschainValidator.json";
 import { OWNERS_SLOT, SIGNATURE_DATA_ABI } from "@/constants";
 import type { SmartAccountClient } from "permissionless";
 import { getAccountNonce } from "permissionless/actions";
-import crossChainValidatorAbi from "../abis/crosschainValidator.json";
 import type { AccountData, CrosschainValidator, Proof } from "./types";
 
 const CROSS_CHAIN_VALIDATOR_ADDRESS =
@@ -118,13 +119,11 @@ function getCrosschainValidator(
 async function prepareCrossChainUserOperation({
     safeChildClient,
     masterOwner,
-    contractAddress,
-    callData,
+    calls,
 }: {
     safeChildClient: SmartAccountClient;
     masterOwner: PrivateKeyAccount;
-    contractAddress: Address;
-    callData: EncodeFunctionDataReturnType;
+    calls: Call[];
 }): Promise<UserOperation> {
     if (!safeChildClient.account) {
         throw new Error("Safe Child Client account is undefined");
@@ -208,13 +207,7 @@ async function prepareCrossChainUserOperation({
     // Prepare user operation
     const userOperation = await safeChildClient.prepareUserOperation({
         account: safeChildClient.account,
-        calls: [
-            {
-                to: contractAddress,
-                value: 0n,
-                data: callData,
-            },
-        ],
+        calls,
         nonce,
         signature: createCrossChainUserOpSignature(
             parentSafeAddress,
@@ -247,7 +240,7 @@ async function prepareCrossChainUserOperation({
     return userOperation as UserOperation;
 }
 
-async function sendCrossChainUserOperation({
+async function sendCrossChainTransaction({
     safeChildClient,
     masterOwner,
     contractAddress,
@@ -258,11 +251,38 @@ async function sendCrossChainUserOperation({
     contractAddress: Address;
     callData: EncodeFunctionDataReturnType;
 }): Promise<Hex> {
+    const calls = [
+        {
+            to: contractAddress,
+            data: callData,
+            value: 0n,
+        },
+    ];
+
     const userOperation = await prepareCrossChainUserOperation({
         safeChildClient,
         masterOwner,
-        contractAddress,
-        callData,
+        calls,
+    });
+
+    const userOpHash = await safeChildClient.sendUserOperation(userOperation);
+
+    return userOpHash;
+}
+
+async function sendCrossChainCalls({
+    safeChildClient,
+    masterOwner,
+    calls,
+}: {
+    safeChildClient: SmartAccountClient;
+    masterOwner: PrivateKeyAccount;
+    calls: Call[];
+}): Promise<Hex> {
+    const userOperation = await prepareCrossChainUserOperation({
+        safeChildClient,
+        masterOwner,
+        calls,
     });
 
     const userOpHash = await safeChildClient.sendUserOperation(userOperation);
@@ -274,5 +294,6 @@ export {
     getSafeOwnerProof,
     getCrosschainValidator,
     prepareCrossChainUserOperation,
-    sendCrossChainUserOperation,
+    sendCrossChainTransaction,
+    sendCrossChainCalls,
 };

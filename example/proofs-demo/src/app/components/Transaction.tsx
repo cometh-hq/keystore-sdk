@@ -2,7 +2,12 @@
 
 import { PlusIcon } from "@radix-ui/react-icons";
 import { useEffect, useState } from "react";
-import { http, createPublicClient, encodeFunctionData } from "viem";
+import {
+    http,
+    type Address,
+    createPublicClient,
+    encodeFunctionData,
+} from "viem";
 
 import { baseSepolia } from "viem/chains";
 import { Icons } from "../lib/ui/components";
@@ -12,9 +17,9 @@ import counterContractAbi from "../abis/counterABI.json";
 
 import {
     getCrosschainValidator,
-    sendCrossChainUserOperation,
+    sendCrossChainCalls,
+    sendCrossChainTransaction,
 } from "@cometh/crosschain";
-
 
 const COUNTER_ADDRESS = "0x4FbF9EE4B2AF774D4617eAb027ac2901a41a7b5F";
 const rpc = process.env.NEXT_PUBLIC_RPC_URL;
@@ -64,7 +69,7 @@ function Transaction({
         }
     }, [parentAccountClient, safeChildClient, masterOwner]);
 
-    const sendTestTransaction = async (
+    const sendSingleTransaction = async (
         masterOwner: any,
         safeChildClient: any,
         parentAccountClient: any,
@@ -98,9 +103,14 @@ function Transaction({
             console.log({ crossChainValidator });
             let isValidatorInstalled = false;
             try {
-                isValidatorInstalled = await safeChildClient.isModuleInstalled(crossChainValidator);
+                isValidatorInstalled =
+                    await safeChildClient.isModuleInstalled(
+                        crossChainValidator
+                    );
             } catch (error) {
-                console.warn("Error checking if module is installed: crossChainValidator may not be installed");
+                console.warn(
+                    "Error checking if module is installed: crossChainValidator may not be installed"
+                );
             }
 
             console.log({ isValidatorInstalled });
@@ -116,7 +126,7 @@ function Transaction({
                 console.log("Validator installation completed");
             }
 
-            const userOpHash = await sendCrossChainUserOperation({
+            const userOpHash = await sendCrossChainTransaction({
                 safeChildClient,
                 masterOwner,
                 contractAddress: COUNTER_ADDRESS,
@@ -139,6 +149,118 @@ function Transaction({
             console.log("Count: ", count);
 
             setNftBalance(Number(count));
+            setTransactionSuccess(true);
+            setTransactionSended(userOpHash);
+        } catch (e) {
+            console.error("Error:", e);
+            setTransactionFailure(true);
+        }
+
+        setIsTransactionLoading(false);
+    };
+
+    const sendBatchTransactions = async (
+        masterOwner: any,
+        safeChildClient: any,
+        parentAccountClient: any,
+        pimlicoClient: any
+    ) => {
+        setTransactionSended(null);
+        setTransactionFailure(false);
+        setTransactionSuccess(false);
+        setIsTransactionLoading(true);
+
+        try {
+            const publicClient = createPublicClient({
+                transport: http(rpc),
+                chain: baseSepolia,
+            });
+
+            // Define the batch of calls
+            const counterData1 = encodeFunctionData({
+                abi: counterContractAbi,
+                functionName: "count",
+                args: [],
+            });
+
+            const counterData2 = encodeFunctionData({
+                abi: counterContractAbi,
+                functionName: "count",
+                args: [],
+            });
+
+            console.log(
+                "Smart Account Address: ",
+                safeChildClient.account?.address
+            );
+
+            const crossChainValidator = getCrosschainValidator(
+                parentAccountClient.account.address
+            );
+            console.log({ crossChainValidator });
+            let isValidatorInstalled = false;
+            try {
+                isValidatorInstalled =
+                    await safeChildClient.isModuleInstalled(
+                        crossChainValidator
+                    );
+            } catch (error) {
+                console.warn(
+                    "Error checking if module is installed: crossChainValidator may not be installed"
+                );
+            }
+
+            console.log({ isValidatorInstalled });
+
+            if (!isValidatorInstalled) {
+                const opHash2 =
+                    await safeChildClient.installModule(crossChainValidator);
+
+                await pimlicoClient.waitForUserOperationReceipt({
+                    hash: opHash2,
+                });
+
+                console.log("Validator installation completed");
+            }
+
+            const batchCalls = [
+                {
+                    to: COUNTER_ADDRESS as Address,
+                    data: counterData1,
+                    value: 0n,
+                },
+                {
+                    to: COUNTER_ADDRESS as Address,
+                    data: counterData2,
+                    value: 0n,
+                },
+            ];
+
+            const userOpHash = await sendCrossChainCalls({
+                safeChildClient,
+                masterOwner,
+                calls: batchCalls,
+            });
+
+            const receipt2 = await pimlicoClient.waitForUserOperationReceipt({
+                hash: userOpHash,
+            });
+
+            console.log("receipt2", receipt2);
+
+            // Checking counter balances
+            const count = await publicClient.readContract({
+                address: COUNTER_ADDRESS,
+                abi: counterContractAbi,
+                functionName: "counters",
+                args: [safeChildClient.account.address],
+            });
+
+            console.log("Count 1: ", count);
+
+            setNftBalance(Number(count));
+            setTransactionSuccess(true);
+            setTransactionSended(userOpHash);
         } catch (e) {
             console.error("Error:", e);
             setTransactionFailure(true);
@@ -154,7 +276,7 @@ function Transaction({
                     <button
                         className="mt-1 flex h-11 py-2 px-4 gap-2 flex-none items-center justify-center rounded-lg bg-gray-100 hover:bg-gray-200"
                         onClick={() =>
-                            sendTestTransaction(
+                            sendSingleTransaction(
                                 masterOwner,
                                 safeChildClient,
                                 parentAccountClient,
@@ -167,7 +289,26 @@ function Transaction({
                         ) : (
                             <PlusIcon width={16} height={16} />
                         )}{" "}
-                        Send tx
+                        Send Single tx
+                    </button>
+
+                    <button
+                        className="mt-1 flex h-11 py-2 px-4 gap-2 flex-none items-center justify-center rounded-lg bg-gray-100 hover:bg-gray-200"
+                        onClick={() =>
+                            sendBatchTransactions(
+                                masterOwner,
+                                safeChildClient,
+                                parentAccountClient,
+                                pimlicoClient
+                            )
+                        }
+                    >
+                        {isTransactionLoading ? (
+                            <Icons.spinner className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <PlusIcon width={16} height={16} />
+                        )}{" "}
+                        Send Batch tx
                     </button>
 
                     <p className="text-gray-600">{nftBalance}</p>
