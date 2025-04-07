@@ -123,12 +123,11 @@ const userOperation = await prepareCrossChainUserOperation({
 ```
 
 ### Get the Safe Owner proof
-Fetch the Merkle proof of ownership of a given address in the parent Safe's storage at a specific block.
+Fetch the Merkle proof of ownership of a given address in the parent Safe's storage.
 
 ```bash
 const proof = await getSafeOwnerProof(
   publicClient,
-  blockNumber,
   parentSafeAddress,
   masterOwnerAddress
 );
