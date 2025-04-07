@@ -31,7 +31,7 @@ const OWNERS_SLOT = 2n;
 const BLOCK_STORAGE_ADDRESS =
     "0x2628EC1d1F1aAD3D344cabaDEA6a5166cAe720F8" as Address;
 const CROSS_CHAIN_VALIDATOR_ADDRESS =
-    "0x92d370ab0c66f0183698e03c0c2fba7034eeaa32" as Address;
+    "0xbfb36e5cfc1d135c658be155f52484c783c61916" as Address;
 
 const DUMMY_SIG = concat([
     pad("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", {
