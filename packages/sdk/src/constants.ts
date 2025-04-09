@@ -1,3 +1,5 @@
+import { type Address, type Hex, concat, pad } from "viem";
+
 const SIGNATURE_DATA_ABI = [
     {
         type: "tuple",
@@ -26,4 +28,25 @@ const SIGNATURE_DATA_ABI = [
 
 const OWNERS_SLOT = 2n;
 
-export { SIGNATURE_DATA_ABI, OWNERS_SLOT };
+const BLOCK_STORAGE_ADDRESS =
+    "0x2628EC1d1F1aAD3D344cabaDEA6a5166cAe720F8" as Address;
+const CROSS_CHAIN_VALIDATOR_ADDRESS =
+    "0xbfb36e5cfc1d135c658be155f52484c783c61916" as Address;
+
+const DUMMY_SIG = concat([
+    pad("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", {
+        size: 32,
+    }),
+    pad("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", {
+        size: 32,
+    }),
+    "0x1c",
+]) as Hex;
+
+export {
+    SIGNATURE_DATA_ABI,
+    OWNERS_SLOT,
+    BLOCK_STORAGE_ADDRESS,
+    CROSS_CHAIN_VALIDATOR_ADDRESS,
+    DUMMY_SIG,
+};

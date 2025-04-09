@@ -1,114 +1,41 @@
-# Crosschain SDK
+![Cometh logo](cometh-logo.png)
+
+# Cometh Crosschain SDK
 
 The Crosschain SDK is designed to facilitate cross-chain operations and interactions within dApps.
 
 
-## Usage
 
-### Create Clients
+## Folder Architecture Overview
 
-```bash
-import { createPublicClient, http } from 'viem';
-import { baseSepolia } from 'viem/chains';
-import { privateKeyToAccount } from 'viem/accounts';
-import { createPimlicoClient } from 'permissionless/clients/pimlico';
-import { createPaymasterClient, entryPoint07Address } from 'viem/account-abstraction';
-import { getSafeChildAccount, getSafeParentAccount } from './services/safeAccountService';
+The project is built using a monorepo structure to further enhance modularity and scalability.
 
-const bundlerUrl = process.env.NEXT_PUBLIC_4337_BUNDLER_URL!;
-const paymasterUrl = process.env.NEXT_PUBLIC_4337_PAYMASTER_URL!;
-const ownerPK = process.env.NEXT_PUBLIC_PRIVATE_KEY!;
-const rpc = process.env.NEXT_PUBLIC_RPC_URL!;
+### Monorepo Structure
 
-const masterOwner = privateKeyToAccount(ownerPK);
+- `packages/`: Directory for subdirectories of the sdk.
+  - `sdk/`: The core functionnalitities of the sdk.
+- `example/`: Directory for the demo example of the sdk.
+  - `proofs-demo/`: Basic demo using the sdk.
 
-const publicClient = createPublicClient({
-    transport: http(rpc),
-    chain: baseSepolia,
-});
+## Getting Started
 
-const pimlicoClient = createPimlicoClient({
-    transport: http(bundlerUrl),
-    entryPoint: {
-        address: entryPoint07Address,
-        version: '0.7',
-    },
-});
+### Installation
 
-const paymasterClient = createPaymasterClient({
-    transport: http(paymasterUrl),
-});
+1. Clone the repository and navigate to the project directory.
+2. Run `bun install` to install dependencies.
 
-const safeChildClient = await getSafeChildAccount({
-    bundlerUrl,
-    paymasterClient,
-    pimlicoClient,
-    publicClient,
-});
+### Running the Development Server
 
-const parentAccountClient = await getSafeParentAccount({
-    bundlerUrl,
-    paymasterClient,
-    pimlicoClient,
-    publicClient,
-    ownerPK,
-});
-```
+- Execute `bun dev` to start the development server.
 
-### Install Crosschain Validator
+## Built With
 
-```bash
-    const opHash = await safeChildClient.installModule(crossChainValidator);
+- [Bun](https://bun.sh/) - The JS toolkit for maximum efficiency.
+- [NextJS](https://nextjs.org/) - The React framework for server-side rendering.
+- [Biome](https://biomejs.dev/) - For ultra-fast linting/formatting.
+- [TanStack Query](https://tanstack.com/) - For efficient data fetching and async state management.
+- [Viem 2.0](https://viem.sh/) - For blockchain communication.
 
-    await pimlicoClient.waitForUserOperationReceipt({
-        hash: opHash,
-    });
-```
+## Contributing
 
-### Send a Cross-Chain Transaction
-
-```bash
-const userOpHash = await sendCrossChainUserOperation({
-    safeChildClient,
-    masterOwner,
-    contractAddress,
-    callData,
-});
-
-const receipt = await pimlicoClient.waitForUserOperationReceipt({
-    hash: userOpHash,
-});
-```
-
-### Prepare a Cross-Chain Transaction
-
-```bash
-const userOperation = await prepareCrossChainUserOperation({
-  safeChildClient,
-  masterOwner,
-  contractAddress,
-  callData,
-});
-```
-
-### Get the Safe Owner proof
-Fetch the Merkle proof of ownership of a given address in the parent Safe's storage at a specific block.
-
-```bash
-const proof = await getSafeOwnerProof(
-  publicClient,
-  blockNumber,
-  parentSafeAddress,
-  masterOwnerAddress
-);
-```
-
-
-### Get the Crosschain Validator module instance
-Generate a cross-chain validator module instance for Safe installation.
-
-```bash
-const validatorModule = getCrosschainValidator(parentSafeAddress);
-```
-
-
+We welcome contributions! Don't hesitate to submit PR :)

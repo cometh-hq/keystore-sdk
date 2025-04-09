@@ -6,7 +6,6 @@ import {
 } from "@rhinestone/module-sdk";
 
 import {
-    http,
     type Address,
     type Call,
     type Chain,
@@ -14,12 +13,8 @@ import {
     type Hex,
     type PrivateKeyAccount,
     type PublicClient,
-    concat,
-    createWalletClient,
     encodeAbiParameters,
     keccak256,
-    pad,
-    toHex,
 } from "viem";
 import {
     type UserOperation,
@@ -27,14 +22,18 @@ import {
     getUserOperationHash,
 } from "viem/account-abstraction";
 
+import blockStorageAbi from "@/abis/blockStorage.json";
 import crossChainValidatorAbi from "@/abis/crosschainValidator.json";
-import { OWNERS_SLOT, SIGNATURE_DATA_ABI } from "@/constants";
+import {
+    BLOCK_STORAGE_ADDRESS,
+    CROSS_CHAIN_VALIDATOR_ADDRESS,
+    DUMMY_SIG,
+    OWNERS_SLOT,
+    SIGNATURE_DATA_ABI,
+} from "@/constants";
 import type { SmartAccountClient } from "permissionless";
 import { getAccountNonce } from "permissionless/actions";
 import type { AccountData, Proof } from "./types";
-
-const CROSS_CHAIN_VALIDATOR_ADDRESS =
-    "0x92d370ab0c66f0183698e03c0c2fba7034eeaa32" as Address;
 
 function createCrossChainUserOpSignature(
     parentSafeAddress: Address,
@@ -73,10 +72,18 @@ function createCrossChainUserOpSignature(
 
 async function getSafeOwnerProof(
     client: PublicClient,
-    blockNumber: Hex,
     parentSafeAddress: Address,
     masterOwnerAddress: Address
 ): Promise<Proof> {
+    const blockNumber = (await client.readContract({
+        address: BLOCK_STORAGE_ADDRESS,
+        abi: blockStorageAbi,
+        functionName: "blockNumber",
+    })) as bigint;
+
+    // Format block number as hex string with '0x' prefix
+    const blockNumberHex = `0x${blockNumber.toString(16)}` as Hex;
+
     // Use encodeAbiParameters to properly replicate abi.encode
     const encodedData = encodeAbiParameters(
         [
@@ -92,7 +99,7 @@ async function getSafeOwnerProof(
     // Request the proof
     const proof = await client.request({
         method: "eth_getProof",
-        params: [parentSafeAddress, [hash], blockNumber],
+        params: [parentSafeAddress, [hash], blockNumberHex],
     });
 
     return proof;
@@ -151,30 +158,9 @@ async function prepareCrossChainUserOperation({
     })) as AccountData;
 
     const parentSafeAddress = accountData[1];
-    const blockNumber = toHex(await publicClient.getBlockNumber());
-    const blockState = await publicClient.getBlock({
-        blockNumber: BigInt(blockNumber),
-    });
-    const blockStateRoot = blockState.stateRoot;
-
-    const walletClient = createWalletClient({
-        account: masterOwner,
-        chain: chain,
-        transport: http(publicClient.transport.url),
-    });
-
-    const tx = await walletClient.writeContract({
-        address: CROSS_CHAIN_VALIDATOR_ADDRESS,
-        abi: crossChainValidatorAbi,
-        functionName: "setLatestBlockStateRoot",
-        args: [blockStateRoot],
-    });
-
-    await publicClient.waitForTransactionReceipt({ hash: tx });
 
     const proof = await getSafeOwnerProof(
         publicClient as PublicClient,
-        blockNumber,
         parentSafeAddress,
         masterOwner.address
     );
@@ -191,18 +177,6 @@ async function prepareCrossChainUserOperation({
         }),
     });
 
-    const dummySig = concat([
-        pad(
-            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            { size: 32 }
-        ),
-        pad(
-            "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-            { size: 32 }
-        ),
-        "0x1c",
-    ]) as Hex;
-
     // Prepare user operation
     const userOperation = await safeChildClient.prepareUserOperation({
         account: safeChildClient.account,
@@ -212,7 +186,7 @@ async function prepareCrossChainUserOperation({
             parentSafeAddress,
             masterOwner.address,
             proof,
-            dummySig,
+            DUMMY_SIG,
             chain
         ) as Hex,
     });
