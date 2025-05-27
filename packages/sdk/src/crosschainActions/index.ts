@@ -4,8 +4,8 @@ import {
     encodeValidatorNonce,
     getAccount,
 } from "@rhinestone/module-sdk";
-
 import {
+    http,
     type Address,
     type Call,
     type Chain,
@@ -13,7 +13,9 @@ import {
     type Hex,
     type PrivateKeyAccount,
     type PublicClient,
+    createPublicClient,
     encodeAbiParameters,
+    hexToBigInt,
     keccak256,
 } from "viem";
 import {
@@ -21,22 +23,22 @@ import {
     entryPoint07Address,
     getUserOperationHash,
 } from "viem/account-abstraction";
+import { baseSepolia } from "viem/chains";
 
 import blockStorageAbi from "@/abis/blockStorage.json";
-import crossChainValidatorAbi from "@/abis/crosschainValidator.json";
 import {
     BLOCK_STORAGE_ADDRESS,
     CROSS_CHAIN_VALIDATOR_ADDRESS,
     DUMMY_SIG,
+    LITE_KEYSTORE_ADDRESS,
     OWNERS_SLOT,
     SIGNATURE_DATA_ABI,
 } from "@/constants";
 import type { SmartAccountClient } from "permissionless";
 import { getAccountNonce } from "permissionless/actions";
-import type { AccountData, Proof } from "./types";
+import type { Proof } from "./types";
 
 function createCrossChainUserOpSignature(
-    parentSafeAddress: Address,
     masterOwnerAddress: Address,
     proof: Proof,
     masterOwnerSignature: Hex,
@@ -55,7 +57,7 @@ function createCrossChainUserOpSignature(
             owner: masterOwnerAddress,
             slotValue: BigInt(posValue),
             account: {
-                accountAddress: parentSafeAddress,
+                accountAddress: LITE_KEYSTORE_ADDRESS,
                 nonce: BigInt(proof.nonce),
                 balance: BigInt(proof.balance),
                 storageRoot: proof.storageHash,
@@ -72,7 +74,7 @@ function createCrossChainUserOpSignature(
 
 async function getSafeOwnerProof(
     client: PublicClient,
-    parentSafeAddress: Address,
+    accountAddress: Address,
     masterOwnerAddress: Address
 ): Promise<Proof> {
     const blockNumber = (await client.readContract({
@@ -90,32 +92,47 @@ async function getSafeOwnerProof(
             { name: "owner", type: "address" },
             { name: "slot", type: "uint256" },
         ],
-        [masterOwnerAddress, OWNERS_SLOT]
+        [
+            masterOwnerAddress,
+            hexToBigInt(
+                keccak256(
+                    encodeAbiParameters(
+                        [
+                            { name: "account", type: "address" },
+                            { name: "slot", type: "uint256" },
+                        ],
+                        [accountAddress, OWNERS_SLOT]
+                    )
+                )
+            ),
+        ]
     );
+
 
     // Calculate the storage slot hash using keccak256
     const hash = keccak256(encodedData);
 
+    const keyStoreReferenceClient = createPublicClient({
+        transport: http(
+            "https://base-sepolia.g.alchemy.com/v2/1I1l-3BakFdYZi3nguZrWu6etwg3KhVY"
+        ),
+        chain: baseSepolia,
+    });
+
     // Request the proof
-    const proof = await client.request({
+    const proof = await keyStoreReferenceClient.request({
         method: "eth_getProof",
-        params: [parentSafeAddress, [hash], blockNumberHex],
+        params: [LITE_KEYSTORE_ADDRESS, [hash], blockNumberHex],
     });
 
     return proof;
 }
 
-function getCrosschainValidator(parentSafeAddress: Address): Module {
+function getCrosschainValidator(): Module {
     return {
         address: CROSS_CHAIN_VALIDATOR_ADDRESS,
         module: CROSS_CHAIN_VALIDATOR_ADDRESS,
-        initData: encodeAbiParameters(
-            [
-                { name: "ownerSlotNumber", type: "uint256" },
-                { name: "parentAddress", type: "address" },
-            ],
-            [OWNERS_SLOT, parentSafeAddress]
-        ) as Hex,
+        initData: "0x" as Hex,
         deInitData: "0x" as Hex,
         additionalContext: "0x" as Hex,
         type: "validator" as ModuleType,
@@ -137,31 +154,9 @@ async function prepareCrossChainUserOperation({
     const publicClient = safeChildClient.account.client as PublicClient;
     const chain = safeChildClient.chain as Chain;
 
-    const isInitialized = await publicClient.readContract({
-        address: CROSS_CHAIN_VALIDATOR_ADDRESS,
-        abi: crossChainValidatorAbi,
-        functionName: "isInitialized",
-        args: [safeChildClient.account.address],
-    });
-
-    if (!isInitialized) {
-        throw new Error(
-            `Crosschain validator is not initialized for child safe account ${safeChildClient.account.address}`
-        );
-    }
-
-    const accountData = (await publicClient.readContract({
-        address: CROSS_CHAIN_VALIDATOR_ADDRESS,
-        abi: crossChainValidatorAbi,
-        functionName: "accountData",
-        args: [safeChildClient.account.address],
-    })) as AccountData;
-
-    const parentSafeAddress = accountData[1];
-
     const proof = await getSafeOwnerProof(
         publicClient as PublicClient,
-        parentSafeAddress,
+        safeChildClient.account.address,
         masterOwner.address
     );
 
@@ -173,17 +168,15 @@ async function prepareCrossChainUserOperation({
                 address: safeChildClient.account.address,
                 type: "safe",
             }),
-            validator: getCrosschainValidator(parentSafeAddress),
+            validator: getCrosschainValidator(),
         }),
     });
 
-    // Prepare user operation
     const userOperation = await safeChildClient.prepareUserOperation({
         account: safeChildClient.account,
         calls,
         nonce,
         signature: createCrossChainUserOpSignature(
-            parentSafeAddress,
             masterOwner.address,
             proof,
             DUMMY_SIG,
@@ -203,7 +196,6 @@ async function prepareCrossChainUserOperation({
     });
 
     userOperation.signature = createCrossChainUserOpSignature(
-        parentSafeAddress,
         masterOwner.address,
         proof,
         masterOwnerSignature,
@@ -224,18 +216,17 @@ async function sendCrossChainTransaction({
     contractAddress: Address;
     callData: EncodeFunctionDataReturnType;
 }): Promise<Hex> {
-    const calls = [
-        {
-            to: contractAddress,
-            data: callData,
-            value: 0n,
-        },
-    ];
 
     const userOperation = await prepareCrossChainUserOperation({
         safeChildClient,
         masterOwner,
-        calls,
+        calls: [
+            {
+                to: contractAddress,
+                data: callData,
+                value: 0n,
+            },
+        ],
     });
 
     const userOpHash = await safeChildClient.sendUserOperation(userOperation);

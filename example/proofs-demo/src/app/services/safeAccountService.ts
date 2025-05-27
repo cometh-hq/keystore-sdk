@@ -5,9 +5,7 @@ import { erc7579Actions } from "permissionless/actions/erc7579";
 import { http, type Hex } from "viem";
 import { entryPoint07Address } from "viem/account-abstraction";
 import { privateKeyToAccount } from "viem/accounts";
-import { baseSepolia } from "viem/chains";
 
-const chain = baseSepolia;
 
 export async function getSafeParentAccount({
     publicClient,
@@ -42,7 +40,7 @@ export async function getSafeParentAccount({
 
     const smartAccountClient = createSmartAccountClient({
         account: safeAccount,
-        chain: chain,
+        chain: publicClient.chain,
         bundlerTransport: http(bundlerUrl),
         paymaster: paymasterClient,
         userOperation: {
@@ -62,15 +60,16 @@ export async function getSafeChildAccount({
     paymasterClient,
     pimlicoClient,
     bundlerUrl,
+    ownerPK,
 }: {
     bundlerUrl: string;
     pimlicoClient: any;
     publicClient: any;
     paymasterClient: any;
+    ownerPK: string;
 }) {
-    const owner = privateKeyToAccount(
-        process.env.NEXT_PUBLIC_CHILD_OWNER_PK as Hex
-    );
+    const owner = privateKeyToAccount(ownerPK as Hex);
+
 
     const safeAccount = await toSafeSmartAccount({
         client: publicClient,
@@ -88,9 +87,10 @@ export async function getSafeChildAccount({
         attestersThreshold: 1,
     });
 
+
     const smartAccountClient = createSmartAccountClient({
         account: safeAccount,
-        chain: chain,
+        chain: publicClient.chain,
         bundlerTransport: http(bundlerUrl),
         paymaster: paymasterClient,
         userOperation: {

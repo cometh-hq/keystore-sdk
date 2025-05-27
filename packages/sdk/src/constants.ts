@@ -26,12 +26,14 @@ const SIGNATURE_DATA_ABI = [
     { type: "bytes", name: "signature" },
 ];
 
-const OWNERS_SLOT = 2n;
+const OWNERS_SLOT = 0n;
 
 const BLOCK_STORAGE_ADDRESS =
-    "0x2628EC1d1F1aAD3D344cabaDEA6a5166cAe720F8" as Address;
+    "0x37752C7758DdD62c9F5Be635e79a40c2AaC57881" as Address;
 const CROSS_CHAIN_VALIDATOR_ADDRESS =
-    "0xbfb36e5cfc1d135c658be155f52484c783c61916" as Address;
+    "0x6b65d2ae15a7ad15ce229afae3403df3d03396f1" as Address;
+const LITE_KEYSTORE_ADDRESS =
+    "0xf98e60b2a9850b28e74912abf057f6e8ac422ea6" as Address;
 
 const DUMMY_SIG = concat([
     pad("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", {
@@ -48,5 +50,6 @@ export {
     OWNERS_SLOT,
     BLOCK_STORAGE_ADDRESS,
     CROSS_CHAIN_VALIDATOR_ADDRESS,
+    LITE_KEYSTORE_ADDRESS,
     DUMMY_SIG,
 };

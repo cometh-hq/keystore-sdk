@@ -4,7 +4,12 @@ import {
     prepareCrossChainUserOperation,
     sendCrossChainCalls,
     sendCrossChainTransaction,
-} from "@/crosschainActions/crosschainActions";
+} from "@/crosschainActions";
+import {
+    deleteOwnerOnKeystore,
+    getOwners,
+    registerOwnerOnKeystore,
+} from "@/liteKeystoreActions/index";
 
 export {
     getSafeOwnerProof,
@@ -12,4 +17,7 @@ export {
     prepareCrossChainUserOperation,
     sendCrossChainTransaction,
     sendCrossChainCalls,
+    registerOwnerOnKeystore,
+    deleteOwnerOnKeystore,
+    getOwners,
 };

@@ -1,451 +1,246 @@
 [
-    {
-        "inputs": [
-            {
-                "internalType": "contract IStorageVerifier",
-                "name": "_storageVerifier",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "nonpayable",
-        "type": "constructor"
-    },
-    { "inputs": [], "name": "ECDSAInvalidSignature", "type": "error" },
-    {
-        "inputs": [
-            { "internalType": "uint256", "name": "length", "type": "uint256" }
-        ],
-        "name": "ECDSAInvalidSignatureLength",
-        "type": "error"
-    },
-    {
-        "inputs": [
-            { "internalType": "bytes32", "name": "s", "type": "bytes32" }
-        ],
-        "name": "ECDSAInvalidSignatureS",
-        "type": "error"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "smartAccount",
-                "type": "address"
-            }
-        ],
-        "name": "ModuleAlreadyInitialized",
-        "type": "error"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "smartAccount",
-                "type": "address"
-            }
-        ],
-        "name": "NotInitialized",
-        "type": "error"
-    },
-    {
-        "inputs": [
-            { "internalType": "address", "name": "owner", "type": "address" }
-        ],
-        "name": "OwnableInvalidOwner",
-        "type": "error"
-    },
-    {
-        "inputs": [
-            { "internalType": "address", "name": "account", "type": "address" }
-        ],
-        "name": "OwnableUnauthorizedAccount",
-        "type": "error"
-    },
-    { "inputs": [], "name": "UnsupportedOperation", "type": "error" },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "previousOwner",
-                "type": "address"
-            },
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "newOwner",
-                "type": "address"
-            }
-        ],
-        "name": "OwnershipTransferred",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": false,
-                "internalType": "bytes32",
-                "name": "_stateRoot",
-                "type": "bytes32"
-            }
-        ],
-        "name": "StateRootCached",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": false,
-                "internalType": "contract IStorageVerifier",
-                "name": "storageVerifier",
-                "type": "address"
-            }
-        ],
-        "name": "StorageVerifierUpdated",
-        "type": "event"
-    },
-    {
-        "inputs": [
-            { "internalType": "address", "name": "", "type": "address" }
-        ],
-        "name": "accountData",
-        "outputs": [
-            {
-                "internalType": "uint256",
-                "name": "ownerSlotNumber",
-                "type": "uint256"
-            },
-            {
-                "internalType": "address",
-                "name": "parentAddress",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "blockStateRoot",
-        "outputs": [
-            { "internalType": "bytes32", "name": "", "type": "bytes32" }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            { "internalType": "address", "name": "owner", "type": "address" }
-        ],
-        "name": "getAccountOwnersSlot",
-        "outputs": [
-            { "internalType": "uint256", "name": "", "type": "uint256" }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "smartAccount",
-                "type": "address"
-            }
-        ],
-        "name": "isInitialized",
-        "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "uint256",
-                "name": "moduleTypeId",
-                "type": "uint256"
-            }
-        ],
-        "name": "isModuleType",
-        "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
-        "stateMutability": "pure",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            { "internalType": "address", "name": "", "type": "address" },
-            { "internalType": "bytes32", "name": "", "type": "bytes32" },
-            { "internalType": "bytes", "name": "", "type": "bytes" }
-        ],
-        "name": "isValidSignatureWithSender",
-        "outputs": [{ "internalType": "bytes4", "name": "", "type": "bytes4" }],
-        "stateMutability": "pure",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "moduleId",
-        "outputs": [{ "internalType": "string", "name": "", "type": "string" }],
-        "stateMutability": "pure",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            { "internalType": "bytes", "name": "data", "type": "bytes" }
-        ],
-        "name": "onInstall",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [{ "internalType": "bytes", "name": "", "type": "bytes" }],
-        "name": "onUninstall",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "owner",
-        "outputs": [
-            { "internalType": "address", "name": "", "type": "address" }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            { "internalType": "bytes32", "name": "hash", "type": "bytes32" },
-            { "internalType": "bytes", "name": "signature", "type": "bytes" }
-        ],
-        "name": "recoverSigner",
-        "outputs": [
-            { "internalType": "address", "name": "", "type": "address" }
-        ],
-        "stateMutability": "pure",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "renounceOwnership",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "bytes32",
-                "name": "_stateRoot",
-                "type": "bytes32"
-            }
-        ],
-        "name": "setLatestBlockStateRoot",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "storageVerifier",
-        "outputs": [
-            {
-                "internalType": "contract IStorageVerifier",
-                "name": "",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "bytes4",
-                "name": "interfaceId",
-                "type": "bytes4"
-            }
-        ],
-        "name": "supportsInterface",
-        "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
-        "stateMutability": "pure",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            { "internalType": "address", "name": "newOwner", "type": "address" }
-        ],
-        "name": "transferOwnership",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "contract IStorageVerifier",
-                "name": "_newVerifier",
-                "type": "address"
-            }
-        ],
-        "name": "updateStorageVerifier",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            { "internalType": "address", "name": "", "type": "address" },
-            { "internalType": "uint32", "name": "", "type": "uint32" },
-            { "internalType": "address", "name": "", "type": "address" },
-            { "internalType": "bytes32", "name": "", "type": "bytes32" },
-            { "internalType": "bytes", "name": "", "type": "bytes" }
-        ],
-        "name": "validateSignature",
-        "outputs": [{ "internalType": "bytes4", "name": "", "type": "bytes4" }],
-        "stateMutability": "pure",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            { "internalType": "uint32", "name": "", "type": "uint32" },
-            {
-                "components": [
-                    {
-                        "internalType": "address",
-                        "name": "sender",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "nonce",
-                        "type": "uint256"
-                    },
-                    {
-                        "internalType": "bytes",
-                        "name": "initCode",
-                        "type": "bytes"
-                    },
-                    {
-                        "internalType": "bytes",
-                        "name": "callData",
-                        "type": "bytes"
-                    },
-                    {
-                        "internalType": "bytes32",
-                        "name": "accountGasLimits",
-                        "type": "bytes32"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "preVerificationGas",
-                        "type": "uint256"
-                    },
-                    {
-                        "internalType": "bytes32",
-                        "name": "gasFees",
-                        "type": "bytes32"
-                    },
-                    {
-                        "internalType": "bytes",
-                        "name": "paymasterAndData",
-                        "type": "bytes"
-                    },
-                    {
-                        "internalType": "bytes",
-                        "name": "signature",
-                        "type": "bytes"
-                    }
-                ],
-                "internalType": "struct PackedUserOperation",
-                "name": "userOp",
-                "type": "tuple"
-            },
-            {
-                "internalType": "bytes32",
-                "name": "userOpHash",
-                "type": "bytes32"
-            }
-        ],
-        "name": "validateUserOp",
-        "outputs": [
-            { "internalType": "uint256", "name": "", "type": "uint256" }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "components": [
-                    {
-                        "internalType": "address",
-                        "name": "sender",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "nonce",
-                        "type": "uint256"
-                    },
-                    {
-                        "internalType": "bytes",
-                        "name": "initCode",
-                        "type": "bytes"
-                    },
-                    {
-                        "internalType": "bytes",
-                        "name": "callData",
-                        "type": "bytes"
-                    },
-                    {
-                        "internalType": "bytes32",
-                        "name": "accountGasLimits",
-                        "type": "bytes32"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "preVerificationGas",
-                        "type": "uint256"
-                    },
-                    {
-                        "internalType": "bytes32",
-                        "name": "gasFees",
-                        "type": "bytes32"
-                    },
-                    {
-                        "internalType": "bytes",
-                        "name": "paymasterAndData",
-                        "type": "bytes"
-                    },
-                    {
-                        "internalType": "bytes",
-                        "name": "signature",
-                        "type": "bytes"
-                    }
-                ],
-                "internalType": "struct PackedUserOperation",
-                "name": "userOp",
-                "type": "tuple"
-            },
-            {
-                "internalType": "bytes32",
-                "name": "userOpHash",
-                "type": "bytes32"
-            }
-        ],
-        "name": "validateUserOp",
-        "outputs": [
-            {
-                "internalType": "ERC7579ValidatorBase.ValidationData",
-                "name": "",
-                "type": "uint256"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    }
+  {
+    "type": "constructor",
+    "inputs": [
+      {
+        "name": "_storageVerifier",
+        "type": "address",
+        "internalType": "contract IStorageVerifier"
+      },
+      { "name": "_liteKeyStore", "type": "address", "internalType": "address" }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "LITE_KEY_STORE_OWNERS_SLOT",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getKeyStoreOwnersSlot",
+    "inputs": [
+      { "name": "account", "type": "address", "internalType": "address" },
+      { "name": "owner", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "isInitialized",
+    "inputs": [
+      { "name": "smartAccount", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isModuleType",
+    "inputs": [
+      { "name": "moduleTypeId", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "isValidSignatureWithSender",
+    "inputs": [
+      { "name": "", "type": "address", "internalType": "address" },
+      { "name": "", "type": "bytes32", "internalType": "bytes32" },
+      { "name": "", "type": "bytes", "internalType": "bytes" }
+    ],
+    "outputs": [{ "name": "", "type": "bytes4", "internalType": "bytes4" }],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "liteKeyStore",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "moduleId",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "string", "internalType": "string" }],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "onInstall",
+    "inputs": [{ "name": "data", "type": "bytes", "internalType": "bytes" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "onUninstall",
+    "inputs": [{ "name": "", "type": "bytes", "internalType": "bytes" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "recoverSigner",
+    "inputs": [
+      { "name": "hash", "type": "bytes32", "internalType": "bytes32" },
+      { "name": "signature", "type": "bytes", "internalType": "bytes" }
+    ],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "storageVerifier",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract IStorageVerifier"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "supportsInterface",
+    "inputs": [
+      { "name": "interfaceId", "type": "bytes4", "internalType": "bytes4" }
+    ],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "validateSignature",
+    "inputs": [
+      { "name": "", "type": "address", "internalType": "address" },
+      { "name": "", "type": "uint32", "internalType": "uint32" },
+      { "name": "", "type": "address", "internalType": "address" },
+      { "name": "", "type": "bytes32", "internalType": "bytes32" },
+      { "name": "", "type": "bytes", "internalType": "bytes" }
+    ],
+    "outputs": [{ "name": "", "type": "bytes4", "internalType": "bytes4" }],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "validateUserOp",
+    "inputs": [
+      { "name": "", "type": "uint32", "internalType": "uint32" },
+      {
+        "name": "userOp",
+        "type": "tuple",
+        "internalType": "struct PackedUserOperation",
+        "components": [
+          { "name": "sender", "type": "address", "internalType": "address" },
+          { "name": "nonce", "type": "uint256", "internalType": "uint256" },
+          { "name": "initCode", "type": "bytes", "internalType": "bytes" },
+          { "name": "callData", "type": "bytes", "internalType": "bytes" },
+          {
+            "name": "accountGasLimits",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "preVerificationGas",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          { "name": "gasFees", "type": "bytes32", "internalType": "bytes32" },
+          {
+            "name": "paymasterAndData",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          { "name": "signature", "type": "bytes", "internalType": "bytes" }
+        ]
+      },
+      { "name": "userOpHash", "type": "bytes32", "internalType": "bytes32" }
+    ],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "validateUserOp",
+    "inputs": [
+      {
+        "name": "userOp",
+        "type": "tuple",
+        "internalType": "struct PackedUserOperation",
+        "components": [
+          { "name": "sender", "type": "address", "internalType": "address" },
+          { "name": "nonce", "type": "uint256", "internalType": "uint256" },
+          { "name": "initCode", "type": "bytes", "internalType": "bytes" },
+          { "name": "callData", "type": "bytes", "internalType": "bytes" },
+          {
+            "name": "accountGasLimits",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "preVerificationGas",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          { "name": "gasFees", "type": "bytes32", "internalType": "bytes32" },
+          {
+            "name": "paymasterAndData",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          { "name": "signature", "type": "bytes", "internalType": "bytes" }
+        ]
+      },
+      { "name": "userOpHash", "type": "bytes32", "internalType": "bytes32" }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "ERC7579ValidatorBase.ValidationData"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  { "type": "error", "name": "ECDSAInvalidSignature", "inputs": [] },
+  {
+    "type": "error",
+    "name": "ECDSAInvalidSignatureLength",
+    "inputs": [
+      { "name": "length", "type": "uint256", "internalType": "uint256" }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ECDSAInvalidSignatureS",
+    "inputs": [{ "name": "s", "type": "bytes32", "internalType": "bytes32" }]
+  },
+  { "type": "error", "name": "ExternalRecoverNotAllowed", "inputs": [] },
+  { "type": "error", "name": "InvalidChainId", "inputs": [] },
+  { "type": "error", "name": "InvalidSignatureLength", "inputs": [] },
+  { "type": "error", "name": "InvalidTargetAccount", "inputs": [] },
+  {
+    "type": "error",
+    "name": "ModuleAlreadyInitialized",
+    "inputs": [
+      { "name": "smartAccount", "type": "address", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "NotInitialized",
+    "inputs": [
+      { "name": "smartAccount", "type": "address", "internalType": "address" }
+    ]
+  },
+  { "type": "error", "name": "UnsupportedOperation", "inputs": [] }
 ]
