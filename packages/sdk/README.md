@@ -12,12 +12,18 @@ bun add @cometh/crosschain-sdk
 
 ### Create Clients
 
-```bash
-import { createPublicClient, http } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
-import { createPimlicoClient } from 'permissionless/clients/pimlico';
-import { createPaymasterClient, entryPoint07Address } from 'viem/account-abstraction';
-import { getSafeChildAccount, getSafeParentAccount } from './services/safeAccountService';
+```ts
+import { MOCK_ATTESTER_ADDRESS } from "@rhinestone/module-sdk";
+import { createPublicClient, http } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { createPimlicoClient } from "permissionless/clients/pimlico";
+import {
+  createPaymasterClient,
+  entryPoint07Address,
+} from "viem/account-abstraction";
+import { createSmartAccountClient } from "permissionless";
+import { toSafeSmartAccount } from "permissionless/accounts";
+import { erc7579Actions } from "permissionless/actions/erc7579";
 
 const bundlerUrl = process.env.NEXT_PUBLIC_4337_BUNDLER_URL!;
 const paymasterUrl = process.env.NEXT_PUBLIC_4337_PAYMASTER_URL!;
@@ -27,116 +33,143 @@ const rpc = process.env.NEXT_PUBLIC_RPC_URL!;
 const masterOwner = privateKeyToAccount(ownerPK);
 
 const publicClient = createPublicClient({
-    transport: http(rpc),
-    chain: baseSepolia,
+  transport: http(rpc),
+  chain: baseSepolia,
 });
 
 const pimlicoClient = createPimlicoClient({
-    transport: http(bundlerUrl),
-    entryPoint: {
-        address: entryPoint07Address,
-        version: '0.7',
-    },
+  transport: http(bundlerUrl),
+  entryPoint: {
+    address: entryPoint07Address,
+    version: "0.7",
+  },
 });
 
 const paymasterClient = createPaymasterClient({
-    transport: http(paymasterUrl),
+  transport: http(paymasterUrl),
 });
 
-const safeChildClient = await getSafeChildAccount({
-    bundlerUrl,
-    paymasterClient,
-    pimlicoClient,
-    publicClient,
+const safeAccount = await toSafeSmartAccount({
+  client: publicClient,
+  owners: [owner],
+  version: "1.4.1",
+  entryPoint: {
+    address: entryPoint07Address,
+    version: "0.7",
+  },
+  safe4337ModuleAddress: "0x7579EE8307284F293B1927136486880611F20002",
+  erc7579LaunchpadAddress: "0x7579011aB74c46090561ea277Ba79D510c6C00ff",
+  attesters: [
+    MOCK_ATTESTER_ADDRESS, // Mock Attester - do not use in production
+  ],
+  attestersThreshold: 1,
 });
 
-const parentAccountClient = await getSafeParentAccount({
-    bundlerUrl,
-    paymasterClient,
-    pimlicoClient,
-    publicClient,
-    ownerPK,
+const smartAccountClient = createSmartAccountClient({
+  account: safeAccount,
+  chain: publicClient.chain,
+  bundlerTransport: http(bundlerUrl),
+  paymaster: paymasterClient,
+  userOperation: {
+    estimateFeesPerGas: async () => {
+      return (await pimlicoClient.getUserOperationGasPrice()).fast;
+    },
+  },
+}).extend(erc7579Actions());
+```
+
+### Lite Keystore contract
+
+```ts
+import {
+  getOwners,
+  registerOwnerOnKeystore,
+  deleteOwnerOnKeystore,
+} from "@cometh/crosschain-sdk";
+import { privateKeyToAccount } from "viem/accounts";
+
+const ownerPK = privateKeyToAccount(PK as Hex);
+
+const txHash = await registerOwnerOnKeystore({
+  smartAccountClient,
+  owner: masterOwner,
+});
+
+const owners = await getOwners({
+  smartAccountClient,
+  publicClient,
+});
+
+const txHash = await deleteOwnerOnKeystore({
+  smartAccountClient,
+  owner: masterOwner,
 });
 ```
 
 ### Install Crosschain Validator
 
-```bash
-    const opHash = await safeChildClient.installModule(crossChainValidator);
+```ts
+import { getCrosschainValidator } from "@cometh/crosschain-sdk";
 
-    await pimlicoClient.waitForUserOperationReceipt({
-        hash: opHash,
-    });
+const crossChainValidator = getCrosschainValidator();
+
+const opHash = await smartAccountClient.installModule(crossChainValidator);
+
+await pimlicoClient.waitForUserOperationReceipt({
+  hash: opHash,
+});
 ```
-
 
 ## Send a Cross-Chain Transaction
 
-```bash
+```ts
 const userOpHash = await sendCrossChainTransaction({
-    safeChildClient,
-    masterOwner,
-    contractAddress,
-    callData,
+  smartAccountClient,
+  masterOwner,
+  contractAddress,
+  callData,
 });
 
 const receipt = await pimlicoClient.waitForUserOperationReceipt({
-    hash: userOpHash,
+  hash: userOpHash,
 });
 ```
 
 ## Send Cross-Chain Batch Transactions
 
-```bash
-const calls = [
-    {
-        to: contractAddress,
-        data: callData1,
-        value: 0n,
-    },
-    {
-        to: contractAddress,
-        data: callData2,
-        value: 0n,
-    },
-];
+```ts
+import { sendCrossChainCalls } from "@cometh/crosschain-sdk";
 
 const userOpHash = await sendCrossChainCalls({
-    safeChildClient,
-    masterOwner,
-    calls
+  smartAccountClient,
+  masterOwner,
+  calls: [
+    {
+      to: contractAddress,
+      data: callData1,
+      value: 0n,
+    },
+    {
+      to: contractAddress,
+      data: callData2,
+      value: 0n,
+    },
+  ],
 });
 
 const receipt = await pimlicoClient.waitForUserOperationReceipt({
-    hash: userOpHash,
+  hash: userOpHash,
 });
 ```
 
 ## Prepare a Cross-Chain Transaction
 
-```bash
+```ts
+import { prepareCrossChainUserOperation } from "@cometh/crosschain-sdk";
+
 const userOperation = await prepareCrossChainUserOperation({
-  safeChildClient,
+  smartAccountClient,
   masterOwner,
-  calls
+  calls,
 });
-```
-
-### Get the Safe Owner proof
-Fetch the Merkle proof of ownership of a given address in the parent Safe's storage.
-
-```bash
-const proof = await getSafeOwnerProof(
-  publicClient,
-  parentSafeAddress,
-  masterOwnerAddress
-);
-```
-
-
-### Get the Crosschain Validator module instance
-Generate a cross-chain validator module instance for Safe installation.
-
-```bash
-const validatorModule = getCrosschainValidator(parentSafeAddress);
 ```

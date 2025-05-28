@@ -5,7 +5,6 @@ import {
     getAccount,
 } from "@rhinestone/module-sdk";
 import {
-    http,
     type Address,
     type Call,
     type Chain,
@@ -13,7 +12,6 @@ import {
     type Hex,
     type PrivateKeyAccount,
     type PublicClient,
-    createPublicClient,
     encodeAbiParameters,
     hexToBigInt,
     keccak256,
@@ -23,7 +21,6 @@ import {
     entryPoint07Address,
     getUserOperationHash,
 } from "viem/account-abstraction";
-import { baseSepolia } from "viem/chains";
 
 import blockStorageAbi from "@/abis/blockStorage.json";
 import {
@@ -51,7 +48,7 @@ function createCrossChainUserOpSignature(
     const posValue = `0x${valueStr.padStart(64, "0")}`;
 
     // Structure the signature data according to the SignatureData struct in the CrossChainValidator
-    const signature = encodeAbiParameters(SIGNATURE_DATA_ABI, [
+    return encodeAbiParameters(SIGNATURE_DATA_ABI, [
         {
             chainId: BigInt(chain.id),
             owner: masterOwnerAddress,
@@ -68,14 +65,13 @@ function createCrossChainUserOpSignature(
         },
         masterOwnerSignature,
     ]);
-
-    return signature;
 }
 
 async function getSafeOwnerProof(
     client: PublicClient,
     accountAddress: Address,
-    masterOwnerAddress: Address
+    masterOwnerAddress: Address,
+    keyStoreReferencePublicClient: PublicClient
 ): Promise<Proof> {
     const blockNumber = (await client.readContract({
         address: BLOCK_STORAGE_ADDRESS,
@@ -108,24 +104,13 @@ async function getSafeOwnerProof(
         ]
     );
 
-
     // Calculate the storage slot hash using keccak256
     const hash = keccak256(encodedData);
 
-    const keyStoreReferenceClient = createPublicClient({
-        transport: http(
-            "https://base-sepolia.g.alchemy.com/v2/1I1l-3BakFdYZi3nguZrWu6etwg3KhVY"
-        ),
-        chain: baseSepolia,
-    });
-
-    // Request the proof
-    const proof = await keyStoreReferenceClient.request({
+    return await keyStoreReferencePublicClient.request({
         method: "eth_getProof",
         params: [LITE_KEYSTORE_ADDRESS, [hash], blockNumberHex],
     });
-
-    return proof;
 }
 
 function getCrosschainValidator(): Module {
@@ -140,40 +125,43 @@ function getCrosschainValidator(): Module {
 }
 
 async function prepareCrossChainUserOperation({
-    safeChildClient,
+    smartAccountClient,
     masterOwner,
     calls,
+    keyStoreReferencePublicClient,
 }: {
-    safeChildClient: SmartAccountClient;
+    smartAccountClient: SmartAccountClient;
     masterOwner: PrivateKeyAccount;
     calls: Call[];
+    keyStoreReferencePublicClient: PublicClient;
 }): Promise<UserOperation> {
-    if (!safeChildClient.account) {
+    if (!smartAccountClient.account) {
         throw new Error("Safe Child Client account is undefined");
     }
-    const publicClient = safeChildClient.account.client as PublicClient;
-    const chain = safeChildClient.chain as Chain;
+    const publicClient = smartAccountClient.account.client as PublicClient;
+    const chain = smartAccountClient.chain as Chain;
 
     const proof = await getSafeOwnerProof(
         publicClient as PublicClient,
-        safeChildClient.account.address,
-        masterOwner.address
+        smartAccountClient.account.address,
+        masterOwner.address,
+        keyStoreReferencePublicClient
     );
 
     const nonce = await getAccountNonce(publicClient, {
-        address: safeChildClient.account.address,
+        address: smartAccountClient.account.address,
         entryPointAddress: entryPoint07Address,
         key: encodeValidatorNonce({
             account: getAccount({
-                address: safeChildClient.account.address,
+                address: smartAccountClient.account.address,
                 type: "safe",
             }),
             validator: getCrosschainValidator(),
         }),
     });
 
-    const userOperation = await safeChildClient.prepareUserOperation({
-        account: safeChildClient.account,
+    const userOperation = await smartAccountClient.prepareUserOperation({
+        account: smartAccountClient.account,
         calls,
         nonce,
         signature: createCrossChainUserOpSignature(
@@ -206,19 +194,20 @@ async function prepareCrossChainUserOperation({
 }
 
 async function sendCrossChainTransaction({
-    safeChildClient,
+    smartAccountClient,
     masterOwner,
     contractAddress,
     callData,
+    keyStoreReferencePublicClient,
 }: {
-    safeChildClient: SmartAccountClient;
+    smartAccountClient: SmartAccountClient;
     masterOwner: PrivateKeyAccount;
     contractAddress: Address;
     callData: EncodeFunctionDataReturnType;
+    keyStoreReferencePublicClient: PublicClient;
 }): Promise<Hex> {
-
     const userOperation = await prepareCrossChainUserOperation({
-        safeChildClient,
+        smartAccountClient,
         masterOwner,
         calls: [
             {
@@ -227,31 +216,31 @@ async function sendCrossChainTransaction({
                 value: 0n,
             },
         ],
+        keyStoreReferencePublicClient,
     });
 
-    const userOpHash = await safeChildClient.sendUserOperation(userOperation);
-
-    return userOpHash;
+    return await smartAccountClient.sendUserOperation(userOperation);
 }
 
 async function sendCrossChainCalls({
-    safeChildClient,
+    smartAccountClient,
     masterOwner,
     calls,
+    keyStoreReferencePublicClient,
 }: {
-    safeChildClient: SmartAccountClient;
+    smartAccountClient: SmartAccountClient;
     masterOwner: PrivateKeyAccount;
     calls: Call[];
+    keyStoreReferencePublicClient: PublicClient;
 }): Promise<Hex> {
     const userOperation = await prepareCrossChainUserOperation({
-        safeChildClient,
+        smartAccountClient,
         masterOwner,
         calls,
+        keyStoreReferencePublicClient,
     });
 
-    const userOpHash = await safeChildClient.sendUserOperation(userOperation);
-
-    return userOpHash;
+    return await smartAccountClient.sendUserOperation(userOperation);
 }
 
 export {

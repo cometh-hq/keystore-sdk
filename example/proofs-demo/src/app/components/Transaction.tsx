@@ -9,7 +9,7 @@ import {
   encodeFunctionData,
 } from "viem";
 
-import { arbitrumSepolia } from "viem/chains";
+import { arbitrumSepolia, baseSepolia } from "viem/chains";
 import { Icons } from "../lib/ui/components";
 import Alert from "../lib/ui/components/Alert";
 
@@ -24,11 +24,15 @@ import {
 const COUNTER_ADDRESS = "0x4FbF9EE4B2AF774D4617eAb027ac2901a41a7b5F";
 const rpc = process.env.NEXT_PUBLIC_RPC_URL;
 
+const keyStoreReferenceClient = createPublicClient({
+  transport: http(process.env.NEXT_PUBLIC_KEYSTORE_REFERENCE_RPC_URL as string),
+  chain: baseSepolia,
+});
+
 interface TransactionProps {
   transactionSuccess: boolean;
   setTransactionSuccess: React.Dispatch<React.SetStateAction<boolean>>;
-  safeChildClient: any;
-  parentAccountClient: any;
+  safeSmartAccountClient: any;
   masterOwner: any;
   pimlicoClient: any;
 }
@@ -36,8 +40,7 @@ interface TransactionProps {
 function Transaction({
   transactionSuccess,
   setTransactionSuccess,
-  safeChildClient,
-  parentAccountClient,
+  safeSmartAccountClient,
   masterOwner,
   pimlicoClient,
 }: TransactionProps) {
@@ -47,29 +50,23 @@ function Transaction({
   );
   const [transactionFailure, setTransactionFailure] = useState(false);
   const [nftBalance, setNftBalance] = useState<number>(0);
-  const [parentSafeAddress, setParentSafeAddress] = useState<string | null>(
-    null
-  );
   const [childSafeAddress, setChildSafeAddress] = useState<string | null>(null);
   const [masterOwnerAddress, setMasterOwnerAddress] = useState<string | null>(
     null
   );
 
   useEffect(() => {
-    if (parentAccountClient) {
-      setParentSafeAddress(parentAccountClient.account.address);
-    }
-    if (safeChildClient) {
-      setChildSafeAddress(safeChildClient.account.address);
+    if (safeSmartAccountClient) {
+      setChildSafeAddress(safeSmartAccountClient.account.address);
     }
     if (masterOwner) {
       setMasterOwnerAddress(masterOwner.address);
     }
-  }, [parentAccountClient, safeChildClient, masterOwner]);
+  }, [safeSmartAccountClient, masterOwner]);
 
   const sendSingleTransaction = async (
     masterOwner: any,
-    safeChildClient: any,
+    safeSmartAccountClient: any,
     pimlicoClient: any
   ) => {
     setTransactionSended(null);
@@ -89,12 +86,15 @@ function Transaction({
         args: [],
       });
 
-      console.log("Smart Account Address: ", safeChildClient.account?.address);
+      console.log(
+        "Smart Account Address: ",
+        safeSmartAccountClient.account?.address
+      );
 
       const crossChainValidator = getCrosschainValidator();
       let isValidatorInstalled = false;
       try {
-        isValidatorInstalled = await safeChildClient.isModuleInstalled(
+        isValidatorInstalled = await safeSmartAccountClient.isModuleInstalled(
           crossChainValidator
         );
       } catch (error) {
@@ -104,7 +104,7 @@ function Transaction({
       }
 
       if (!isValidatorInstalled) {
-        const opHash2 = await safeChildClient.installModule(
+        const opHash2 = await safeSmartAccountClient.installModule(
           crossChainValidator
         );
 
@@ -116,10 +116,11 @@ function Transaction({
       }
 
       const userOpHash = await sendCrossChainTransaction({
-        safeChildClient,
+        smartAccountClient: safeSmartAccountClient,
         masterOwner,
         contractAddress: COUNTER_ADDRESS,
         callData: counterData,
+        keyStoreReferencePublicClient: keyStoreReferenceClient as any,
       });
 
       const receipt2 = await pimlicoClient.waitForUserOperationReceipt({
@@ -130,7 +131,7 @@ function Transaction({
         address: COUNTER_ADDRESS,
         abi: counterContractAbi,
         functionName: "counters",
-        args: [safeChildClient.account.address],
+        args: [safeSmartAccountClient.account.address],
       });
 
       console.log("Count: ", count);
@@ -148,7 +149,7 @@ function Transaction({
 
   const sendBatchTransactions = async (
     masterOwner: any,
-    safeChildClient: any,
+    safeSmartAccountClient: any,
     pimlicoClient: any
   ) => {
     setTransactionSended(null);
@@ -175,13 +176,15 @@ function Transaction({
         args: [],
       });
 
-      console.log("Smart Account Address: ", safeChildClient.account?.address);
+      console.log(
+        "Smart Account Address: ",
+        safeSmartAccountClient.account?.address
+      );
 
       const crossChainValidator = getCrosschainValidator();
-      console.log({ crossChainValidator });
       let isValidatorInstalled = false;
       try {
-        isValidatorInstalled = await safeChildClient.isModuleInstalled(
+        isValidatorInstalled = await safeSmartAccountClient.isModuleInstalled(
           crossChainValidator
         );
       } catch (error) {
@@ -190,10 +193,8 @@ function Transaction({
         );
       }
 
-      console.log({ isValidatorInstalled });
-
       if (!isValidatorInstalled) {
-        const opHash2 = await safeChildClient.installModule(
+        const opHash2 = await safeSmartAccountClient.installModule(
           crossChainValidator
         );
 
@@ -218,23 +219,22 @@ function Transaction({
       ];
 
       const userOpHash = await sendCrossChainCalls({
-        safeChildClient,
+        smartAccountClient: safeSmartAccountClient,
         masterOwner,
         calls: batchCalls,
+        keyStoreReferencePublicClient: keyStoreReferenceClient as any,
       });
 
       const receipt2 = await pimlicoClient.waitForUserOperationReceipt({
         hash: userOpHash,
       });
 
-      console.log("receipt2", receipt2);
-
       // Checking counter balances
       const count = await publicClient.readContract({
         address: COUNTER_ADDRESS,
         abi: counterContractAbi,
         functionName: "counters",
-        args: [safeChildClient.account.address],
+        args: [safeSmartAccountClient.account.address],
       });
 
       console.log("Count 1: ", count);
@@ -257,7 +257,11 @@ function Transaction({
           <button
             className="mt-1 flex h-11 py-2 px-4 gap-2 flex-none items-center justify-center rounded-lg bg-gray-100 hover:bg-gray-200"
             onClick={() =>
-              sendSingleTransaction(masterOwner, safeChildClient, pimlicoClient)
+              sendSingleTransaction(
+                masterOwner,
+                safeSmartAccountClient,
+                pimlicoClient
+              )
             }
           >
             {isTransactionLoading ? (
@@ -271,7 +275,11 @@ function Transaction({
           <button
             className="mt-1 flex h-11 py-2 px-4 gap-2 flex-none items-center justify-center rounded-lg bg-gray-100 hover:bg-gray-200"
             onClick={() =>
-              sendBatchTransactions(masterOwner, safeChildClient, pimlicoClient)
+              sendBatchTransactions(
+                masterOwner,
+                safeSmartAccountClient,
+                pimlicoClient
+              )
             }
           >
             {isTransactionLoading ? (

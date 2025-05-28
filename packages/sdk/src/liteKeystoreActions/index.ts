@@ -35,19 +35,19 @@ async function registerOwnerOnKeystore({
 }
 
 async function deleteOwnerOnKeystore({
-    safeChildClient,
+    smartAccountClient,
     owner,
 }: {
-    safeChildClient: SmartAccountClient;
+    smartAccountClient: SmartAccountClient;
     owner: PrivateKeyAccount;
 }): Promise<Hex> {
     const callData = encodeFunctionData({
         abi: liteKeystoreAbi,
         functionName: "removeOwner",
-        args: [safeChildClient?.account?.address, owner.address],
+        args: [smartAccountClient?.account?.address, owner.address],
     });
 
-    const txhash = await safeChildClient.sendTransaction({
+    const txhash = await smartAccountClient.sendTransaction({
         calls: [
             {
                 to: LITE_KEYSTORE_ADDRESS,
@@ -61,17 +61,17 @@ async function deleteOwnerOnKeystore({
 }
 
 async function getOwners({
-    safeChildClient,
+    smartAccountClient,
     publicClient,
 }: {
-    safeChildClient: SmartAccountClient;
+    smartAccountClient: SmartAccountClient;
     publicClient: PublicClient;
 }): Promise<Hex[]> {
     return (await publicClient.readContract({
         address: LITE_KEYSTORE_ADDRESS,
         abi: liteKeystoreAbi,
         functionName: "getOwners",
-        args: [safeChildClient?.account?.address],
+        args: [smartAccountClient?.account?.address],
     })) as Hex[];
 }
 

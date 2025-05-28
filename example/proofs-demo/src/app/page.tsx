@@ -11,18 +11,14 @@ import { privateKeyToAccount } from "viem/accounts";
 import { arbitrumSepolia, baseSepolia } from "viem/chains";
 import ConnectSafes from "./components/ConnectSafes";
 import Transaction from "./components/Transaction";
-import {
-  getSafeChildAccount,
-  getSafeParentAccount,
-} from "./services/safeAccountService";
-import { getOwners, registerOwnerOnKeystore } from "@cometh/crosschain-sdk";
+import { getSmartAccountClient } from "./services/safeAccountService";
+import { registerOwnerOnKeystore } from "@cometh/crosschain-sdk";
 
 export default function App() {
   const [transactionSuccess, setTransactionSuccess] = useState(false);
-  const [safeChildClient, setSafeChildClient] = useState<Awaited<
-    ReturnType<typeof getSafeChildAccount>
+  const [safeSmartAccountClient, setSafeSmartAccountClient] = useState<Awaited<
+    ReturnType<typeof getSmartAccountClient>
   > | null>(null);
-  const [parentAccountClient, setParentAccountClient] = useState(null);
   const [masterOwner, setMasterOwner] = useState<ReturnType<
     typeof privateKeyToAccount
   > | null>(null);
@@ -48,7 +44,6 @@ export default function App() {
       const rpc = process.env.NEXT_PUBLIC_RPC_URL;
 
       const masterOwner = privateKeyToAccount(masterOwnerPK as Hex);
-
       setMasterOwner(masterOwner);
 
       const arbPublicClient = createPublicClient({
@@ -87,15 +82,8 @@ export default function App() {
         transport: http(paymasterUrlBase),
       });
 
-      const arbSafeChildClient = await getSafeChildAccount({
-        bundlerUrl: bundlerUrlArb,
-        paymasterClient: arbPaymasterClient,
-        pimlicoClient: arbpimlicoClient,
-        publicClient: arbPublicClient,
-        ownerPK: ownerPK,
-      });
-
-      const baseSafeChildClient = await getSafeChildAccount({
+      // child register master owner on keystore ///////////////////////
+      const baseSmartAccountClient = await getSmartAccountClient({
         bundlerUrl: bundlerUrlBase,
         paymasterClient: basePaymasterClient,
         pimlicoClient: basepimlicoClient,
@@ -103,28 +91,21 @@ export default function App() {
         ownerPK: ownerPK,
       });
 
-      const arbSafeMasterClient = await getSafeParentAccount({
+      await registerOwnerOnKeystore({
+        smartAccountClient: baseSmartAccountClient as any,
+        owner: masterOwner,
+      });
+      ////////////////////////////////////////////////////////////
+
+      const arbSmartAccountClient = await getSmartAccountClient({
         bundlerUrl: bundlerUrlArb,
         paymasterClient: arbPaymasterClient,
         pimlicoClient: arbpimlicoClient,
         publicClient: arbPublicClient,
-        ownerPK: masterOwnerPK,
+        ownerPK: ownerPK,
       });
 
-      const txhash = await registerOwnerOnKeystore({
-        smartAccountClient: baseSafeChildClient as any,
-        owner: masterOwner,
-      });
-
-      const owners = await getOwners({
-        safeChildClient: baseSafeChildClient as any,
-        publicClient: basePublicClient as any,
-      });
-
-      console.log({ owners });
-
-      setSafeChildClient(arbSafeChildClient);
-      setParentAccountClient(arbSafeMasterClient);
+      setSafeSmartAccountClient(arbSmartAccountClient);
 
       setIsConnected(true);
     } catch (error) {
@@ -162,8 +143,7 @@ export default function App() {
                 <Transaction
                   transactionSuccess={transactionSuccess}
                   setTransactionSuccess={setTransactionSuccess}
-                  safeChildClient={safeChildClient}
-                  parentAccountClient={parentAccountClient}
+                  safeSmartAccountClient={safeSmartAccountClient}
                   masterOwner={masterOwner}
                   pimlicoClient={pimlicoClient}
                 />
