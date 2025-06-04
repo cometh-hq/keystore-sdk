@@ -1,9 +1,9 @@
 {
-  "name": "@cometh/crosschain-sdk",
+  "name": "@cometh/keystore-sdk",
   "author": "Cometh",
   "version": "0.0.1",
-  "description": "SDK Cometh Crosschain",
-  "repository": "https://github.com/cometh-hq/crosschain-sdk.git",
+  "description": "SDK Cometh Keystore",
+  "repository": "https://github.com/cometh-hq/keystore-sdk.git",
   "license": "ISC",
   "private": false,
   "main": "dist/index.cjs",

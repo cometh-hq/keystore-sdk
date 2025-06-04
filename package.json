@@ -1,7 +1,7 @@
 {
-  "name": "@cometh/crosschain",
+  "name": "@cometh/keystore",
   "version": "0.0.1",
-  "description": "SDK Cometh Crosschain",
+  "description": "SDK Cometh Keystore",
   "private": true,
   "type": "module",
   "license": "ISC",

@@ -1,11 +1,11 @@
-# Crosschain SDK
+# Keystore SDK
 
-The Crosschain SDK is designed to facilitate cross-chain operations and interactions within dApps.
+The Keystore SDK is designed to facilitate cross-chain operations and interactions within dApps.
 
 ## Installation
 
 ```bash
-bun add @cometh/crosschain-sdk
+bun add @cometh/keystore-sdk
 ```
 
 ## Setup
@@ -85,7 +85,7 @@ import {
   getOwners,
   registerOwnerOnKeystore,
   deleteOwnerOnKeystore,
-} from "@cometh/crosschain-sdk";
+} from "@cometh/keystore-sdk";
 import { privateKeyToAccount } from "viem/accounts";
 
 const ownerPK = privateKeyToAccount(PK as Hex);
@@ -109,7 +109,7 @@ const txHash = await deleteOwnerOnKeystore({
 ### Install Crosschain Validator
 
 ```ts
-import { getCrosschainValidator } from "@cometh/crosschain-sdk";
+import { getCrosschainValidator } from "@cometh/keystore-sdk";
 
 const crossChainValidator = getCrosschainValidator();
 
@@ -138,7 +138,7 @@ const receipt = await pimlicoClient.waitForUserOperationReceipt({
 ## Send Cross-Chain Batch Transactions
 
 ```ts
-import { sendCrossChainCalls } from "@cometh/crosschain-sdk";
+import { sendCrossChainCalls } from "@cometh/keystore-sdk";
 
 const userOpHash = await sendCrossChainCalls({
   smartAccountClient,
@@ -165,7 +165,7 @@ const receipt = await pimlicoClient.waitForUserOperationReceipt({
 ## Prepare a Cross-Chain Transaction
 
 ```ts
-import { prepareCrossChainUserOperation } from "@cometh/crosschain-sdk";
+import { prepareCrossChainUserOperation } from "@cometh/keystore-sdk";
 
 const userOperation = await prepareCrossChainUserOperation({
   smartAccountClient,

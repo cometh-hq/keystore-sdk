@@ -19,7 +19,7 @@ import {
   getCrosschainValidator,
   sendCrossChainCalls,
   sendCrossChainTransaction,
-} from "@cometh/crosschain-sdk";
+} from "@cometh/keystore-sdk";
 
 const COUNTER_ADDRESS = "0x4FbF9EE4B2AF774D4617eAb027ac2901a41a7b5F";
 const rpc = process.env.NEXT_PUBLIC_RPC_URL;

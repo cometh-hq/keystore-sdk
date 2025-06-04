@@ -1,6 +1,6 @@
 # Cometh Keystore SDK
 
-The Crosschain SDK is designed to facilitate cross-chain operations and interactions within dApps.
+The Keystore SDK is designed to facilitate cross-chain operations and interactions within dApps.
 
 ## Folder Architecture Overview
 
