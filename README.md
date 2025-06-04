@@ -1,4 +1,4 @@
-# Cometh Crosschain SDK
+# Cometh Keystore SDK
 
 The Crosschain SDK is designed to facilitate cross-chain operations and interactions within dApps.
 
