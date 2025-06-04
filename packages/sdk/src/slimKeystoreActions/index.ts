@@ -1,5 +1,5 @@
-import liteKeystoreAbi from "@/abis/liteKeyStore.json";
-import { LITE_KEYSTORE_ADDRESS } from "@/constants";
+import slimKeystoreAbi from "@/abis/slimKeyStore.json";
+import { SLIM_KEYSTORE_ADDRESS } from "@/constants";
 import type { SmartAccountClient } from "permissionless";
 import {
     type Hex,
@@ -16,7 +16,7 @@ async function registerOwnerOnKeystore({
     owner: PrivateKeyAccount;
 }): Promise<Hex> {
     const callData = encodeFunctionData({
-        abi: liteKeystoreAbi,
+        abi: slimKeystoreAbi,
         functionName: "addOwner",
         args: [smartAccountClient?.account?.address, owner.address],
     });
@@ -24,7 +24,7 @@ async function registerOwnerOnKeystore({
     const txhash = await smartAccountClient.sendTransaction({
         calls: [
             {
-                to: LITE_KEYSTORE_ADDRESS,
+                to: SLIM_KEYSTORE_ADDRESS,
                 data: callData,
                 value: 0n,
             },
@@ -42,7 +42,7 @@ async function deleteOwnerOnKeystore({
     owner: PrivateKeyAccount;
 }): Promise<Hex> {
     const callData = encodeFunctionData({
-        abi: liteKeystoreAbi,
+        abi: slimKeystoreAbi,
         functionName: "removeOwner",
         args: [smartAccountClient?.account?.address, owner.address],
     });
@@ -50,7 +50,7 @@ async function deleteOwnerOnKeystore({
     const txhash = await smartAccountClient.sendTransaction({
         calls: [
             {
-                to: LITE_KEYSTORE_ADDRESS,
+                to: SLIM_KEYSTORE_ADDRESS,
                 data: callData,
                 value: 0n,
             },
@@ -68,8 +68,8 @@ async function getOwners({
     publicClient: PublicClient;
 }): Promise<Hex[]> {
     return (await publicClient.readContract({
-        address: LITE_KEYSTORE_ADDRESS,
-        abi: liteKeystoreAbi,
+        address: SLIM_KEYSTORE_ADDRESS,
+        abi: slimKeystoreAbi,
         functionName: "getOwners",
         args: [smartAccountClient?.account?.address],
     })) as Hex[];

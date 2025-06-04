@@ -27,7 +27,7 @@ import {
     BLOCK_STORAGE_ADDRESS,
     CROSS_CHAIN_VALIDATOR_ADDRESS,
     DUMMY_SIG,
-    LITE_KEYSTORE_ADDRESS,
+    SLIM_KEYSTORE_ADDRESS,
     OWNERS_SLOT,
     SIGNATURE_DATA_ABI,
 } from "@/constants";
@@ -54,7 +54,7 @@ function createCrossChainUserOpSignature(
             owner: masterOwnerAddress,
             slotValue: BigInt(posValue),
             account: {
-                accountAddress: LITE_KEYSTORE_ADDRESS,
+                accountAddress: SLIM_KEYSTORE_ADDRESS,
                 nonce: BigInt(proof.nonce),
                 balance: BigInt(proof.balance),
                 storageRoot: proof.storageHash,
@@ -109,7 +109,7 @@ async function getSafeOwnerProof(
 
     return await keyStoreReferencePublicClient.request({
         method: "eth_getProof",
-        params: [LITE_KEYSTORE_ADDRESS, [hash], blockNumberHex],
+        params: [SLIM_KEYSTORE_ADDRESS, [hash], blockNumberHex],
     });
 }
 

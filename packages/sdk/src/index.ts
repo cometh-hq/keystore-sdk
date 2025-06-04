@@ -9,7 +9,7 @@ import {
     deleteOwnerOnKeystore,
     getOwners,
     registerOwnerOnKeystore,
-} from "@/liteKeystoreActions/index";
+} from "@/slimKeystoreActions/index";
 
 export {
     getSafeOwnerProof,

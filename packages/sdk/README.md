@@ -78,7 +78,7 @@ const smartAccountClient = createSmartAccountClient({
 }).extend(erc7579Actions());
 ```
 
-### Lite Keystore contract
+### Slim Keystore contract
 
 ```ts
 import {
