@@ -1,10 +1,6 @@
-![Cometh logo](cometh-logo.png)
-
 # Cometh Crosschain SDK
 
 The Crosschain SDK is designed to facilitate cross-chain operations and interactions within dApps.
-
-
 
 ## Folder Architecture Overview
 
